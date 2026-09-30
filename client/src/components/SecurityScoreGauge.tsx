@@ -12,7 +12,7 @@ export interface SecurityScoreGaugeProps {
 }
 
 export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
-  size = 168,
+  size = 184,
   strokeWidth = 14,
   scoreOverride,
 }) => {
@@ -23,7 +23,8 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
   const { color, badgeBg, label } = getScoreVisualMeta(normalizedScore);
 
   const center = size / 2;
-  const radius = (size - strokeWidth) / 2;
+  const outerRingRadius = center - 4;
+  const radius = (size - strokeWidth * 2 - 8) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset =
     circumference - (normalizedScore / 100) * circumference;
@@ -36,7 +37,29 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
       accessibilityLabel={`Holistic Security Score ${normalizedScore} out of 100, status ${label}`}
       accessibilityValue={{ min: 0, max: 100, now: normalizedScore }}>
       <Svg width={size} height={size} style={styles.svg}>
-        {/* Background Track Circle */}
+        {/* Subtle Outer Telemetry Ring */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={outerRingRadius}
+          stroke={SecurityPalette.border}
+          strokeWidth={1}
+          strokeDasharray="3 6"
+          fill="transparent"
+        />
+
+        {/* Soft Ambient Halo Behind Progress Arc */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={color}
+          strokeOpacity={0.14}
+          strokeWidth={strokeWidth + 8}
+          fill="transparent"
+        />
+
+        {/* Track Ring */}
         <Circle
           cx={center}
           cy={center}
@@ -45,7 +68,8 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        {/* Foreground Progress Arc */}
+
+        {/* Dynamic Semantic Progress Arc */}
         <Circle
           cx={center}
           cy={center}
@@ -62,8 +86,11 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
       </Svg>
 
       <View style={styles.centerContent}>
-        <Text style={[styles.scoreNumber, { color }]}>{normalizedScore}</Text>
-        <Text style={styles.scoreScale}>/ 100</Text>
+        <Text style={styles.caption}>SECURITY SCORE</Text>
+        <View style={styles.scoreRow}>
+          <Text style={[styles.scoreNumber, { color }]}>{normalizedScore}</Text>
+          <Text style={styles.scoreMax}>/100</Text>
+        </View>
         <View
           style={[
             styles.statusBadge,
@@ -90,18 +117,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scoreNumber: {
-    fontSize: 42,
+  caption: {
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: -1,
-    lineHeight: 46,
-  },
-  scoreScale: {
-    fontSize: 12,
+    letterSpacing: 1.2,
     color: SecurityPalette.textSecondary,
-    fontWeight: '600',
-    marginTop: -2,
+    marginBottom: 2,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     marginBottom: 6,
+  },
+  scoreNumber: {
+    fontSize: 44,
+    fontWeight: '800',
+    letterSpacing: -1.5,
+    lineHeight: 48,
+  },
+  scoreMax: {
+    fontSize: 13,
+    color: SecurityPalette.textSecondary,
+    fontWeight: '700',
+    marginLeft: 2,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -118,10 +156,10 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.7,
   },
 });
 
