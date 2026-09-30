@@ -5,435 +5,280 @@ import {
   StyleSheet,
   useWindowDimensions,
   Pressable,
-  StatusBar,
 } from 'react-native';
-import { Text, Surface } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, CyberAwarenessTip } from '../types/security';
 import { useSecurityStore } from '../store/useSecurityStore';
 import { SecurityScoreGauge } from '../components/SecurityScoreGauge';
 import {
-  ShieldCheckIcon,
   WifiSignalIcon,
   GlobeLinkIcon,
   QrMatrixIcon,
   LockSlidersIcon,
   BulbSparkIcon,
-  ChevronRightIcon,
 } from '../components/SecurityIcons';
-import { getScoreVisualMeta, SecurityPalette } from '../theme/theme';
+import {
+  AppButton,
+  AppProgressBar,
+  StatusCard,
+  QuickActionCard,
+  ActivityItemRow,
+} from '../design-system/components';
+import {
+  getScoreVisualMeta,
+  SecurityPalette,
+  Spacing,
+  Radius,
+} from '../theme/theme';
 import cyberTipsData from '../data/cyberTips.json';
 
 type DashboardProps = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
-
-interface ActionCardItem {
-  readonly id: string;
-  readonly title: string;
-  readonly subtitle: string;
-  readonly ctaLabel: string;
-  readonly badge: string;
-  readonly accentColor: string;
-  readonly tintBg: string;
-  readonly route: keyof Omit<RootStackParamList, 'Dashboard'>;
-}
-
-const ACTION_CARDS: readonly ActionCardItem[] = [
-  {
-    id: 'wifi',
-    title: 'Wi-Fi Risk Analyzer',
-    subtitle: 'Inspect SSID & WPA2/WPA3 encryption safety',
-    ctaLabel: 'Inspect Network',
-    badge: 'ENCRYPTED',
-    accentColor: '#38BDF8',
-    tintBg: 'rgba(56, 189, 248, 0.12)',
-    route: 'WifiAnalyzer',
-  },
-  {
-    id: 'url',
-    title: 'Malicious URL Scanner',
-    subtitle: 'Verify suspicious links against cloud threat intel',
-    ctaLabel: 'Scan Web Link',
-    badge: 'THREAT INTEL',
-    accentColor: '#00C853',
-    tintBg: 'rgba(0, 200, 83, 0.12)',
-    route: 'UrlScanner',
-  },
-  {
-    id: 'qr',
-    title: 'QR Verification Sandbox',
-    subtitle: 'Preview QR code destinations before opening',
-    ctaLabel: 'Launch Sandbox',
-    badge: 'ANTI-QISHING',
-    accentColor: '#FFAB00',
-    tintBg: 'rgba(255, 171, 0, 0.12)',
-    route: 'QrScanner',
-  },
-  {
-    id: 'permissions',
-    title: 'App Permissions Auditor',
-    subtitle: 'Detect apps with excessive camera, SMS, or mic access',
-    ctaLabel: 'Audit 2 Alerts',
-    badge: '2 UNVERIFIED',
-    accentColor: '#F43F5E',
-    tintBg: 'rgba(244, 63, 94, 0.12)',
-    route: 'PermissionAnalyzer',
-  },
-];
 
 const typedTips = cyberTipsData as readonly CyberAwarenessTip[];
 
 export const DashboardScreen: React.FC<DashboardProps> = ({ navigation }) => {
   const { width } = useWindowDimensions();
+  const user = useSecurityStore((state) => state.user);
   const score = useSecurityStore((state) => state.score);
-  const summaryMessage = useSecurityStore((state) => state.summaryMessage);
   const securityScore = useSecurityStore((state) => state.securityScore);
-  const setScore = useSecurityStore((state) => state.setScore);
+  const unverifiedPermissionsCount = useSecurityStore(
+    (state) => state.unverifiedPermissionsCount,
+  );
+  const activityTimeline = useSecurityStore((state) => state.activityTimeline);
+  const improveSecurityAutomatically = useSecurityStore(
+    (state) => state.improveSecurityAutomatically,
+  );
 
-  const [tipIndex, setTipIndex] = useState<number>(0);
+  const [tipIndex, setTipIndex] = useState(0);
   const currentTip = typedTips[tipIndex % typedTips.length];
+  const firstName = user.fullName.split(' ')[0] || 'Friend';
+  const scoreMeta = getScoreVisualMeta(score);
 
-  const { color: statusColor, badgeBg, headline } = getScoreVisualMeta(score);
-
-  // Responsive calculations for 360dp, 390dp, 412dp+ viewports
-  const horizontalPadding = width <= 360 ? 14 : 18;
-  const gridGap = width <= 360 ? 10 : 12;
-  const cardWidth = Math.floor((width - horizontalPadding * 2 - gridGap) / 2);
-  const gaugeSize = width <= 360 ? 168 : 184;
-
-  const renderCardIcon = (id: string, color: string) => {
-    switch (id) {
-      case 'wifi':
-        return <WifiSignalIcon size={22} color={color} />;
-      case 'url':
-        return <GlobeLinkIcon size={22} color={color} />;
-      case 'qr':
-        return <QrMatrixIcon size={22} color={color} />;
-      default:
-        return <LockSlidersIcon size={22} color={color} />;
-    }
-  };
+  const isWide = width >= 720;
+  const quickCardWidth = isWide ? '23.5%' : '48%';
 
   return (
-    <View style={styles.screen}>
-      <StatusBar barStyle="light-content" />
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingHorizontal: horizontalPadding },
-        ]}
-        showsVerticalScrollIndicator={false}>
-        {/* 1. HEADER: Brand Identity + Real-Time Protection Status */}
-        <View style={styles.headerRow}>
-          <View style={styles.brandRow}>
-            <View
-              style={[
-                styles.brandLogoBox,
-                { borderColor: statusColor, backgroundColor: badgeBg },
-              ]}>
-              <ShieldCheckIcon size={22} color={statusColor} />
-            </View>
-            <View>
-              <Text style={styles.brandOverline}>PROACTIVE DEFENSE</Text>
-              <Text style={styles.brandTitle}>Cyber Companion</Text>
-            </View>
-          </View>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}>
+      {/* 1. CALM PERSONAL HEADER */}
+      <View style={styles.greetingHeader}>
+        <View>
+          <Text style={styles.greetingTitle}>
+            Good morning, {firstName} 👋
+          </Text>
+          <Text style={styles.greetingSubtitle}>
+            Here's your security overview.
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => navigation.navigate('CyberAssistant')}
+          style={styles.assistantShortcut}>
+          <Text style={styles.assistantShortcutText}>Ask Cyber Assistant</Text>
+        </Pressable>
+      </View>
 
-          <View
-            style={[
-              styles.protectionBadge,
-              { borderColor: statusColor, backgroundColor: badgeBg },
-            ]}>
-            <View
-              style={[styles.pulseDot, { backgroundColor: statusColor }]}
-            />
-            <Text style={[styles.protectionBadgeText, { color: statusColor }]}>
-              SHIELD ON
+      {/* 2. SECURITY SCORE OVERVIEW CARD */}
+      <View style={styles.scoreSectionCard}>
+        <View style={[styles.scoreMainRow, isWide && styles.scoreMainRowWide]}>
+          <View style={styles.gaugeColumn}>
+            <SecurityScoreGauge size={168} />
+            <Text style={[styles.scoreStatusLabel, { color: scoreMeta.color }]}>
+              {scoreMeta.symbol} {scoreMeta.label}
             </Text>
+            <Text style={styles.scorePlainHeadline}>{scoreMeta.headline}</Text>
+          </View>
+
+          <View style={styles.breakdownColumn}>
+            <Text style={styles.breakdownHeading}>Security Breakdown</Text>
+            <View style={styles.breakdownList}>
+              <AppProgressBar
+                label="Password"
+                value={securityScore.breakdown.password}
+              />
+              <AppProgressBar
+                label="Device"
+                value={securityScore.breakdown.device}
+              />
+              <AppProgressBar
+                label="Network"
+                value={securityScore.breakdown.network}
+              />
+              <AppProgressBar
+                label="Privacy"
+                value={securityScore.breakdown.privacy}
+              />
+              <AppProgressBar
+                label="Awareness"
+                value={securityScore.breakdown.awareness}
+              />
+            </View>
           </View>
         </View>
 
-        {/* 2. HERO SECTION: Centered Holistic Security Score & Plain-Language Summary */}
-        <Surface style={styles.heroCard} elevation={2}>
-          <View style={styles.heroGaugeWrap}>
-            <SecurityScoreGauge size={gaugeSize} />
-          </View>
+        <View style={styles.scoreFooterRow}>
+          <AppButton
+            label="Improve Security"
+            onPress={() => {
+              if (unverifiedPermissionsCount > 0) {
+                improveSecurityAutomatically();
+              } else {
+                navigation.navigate('SecurityCenter');
+              }
+            }}
+            variant="primary"
+            fullWidth
+          />
+        </View>
+      </View>
 
-          <Text style={styles.heroHeadline}>{headline}</Text>
-
-          <View
-            style={[
-              styles.summaryBanner,
-              { borderColor: statusColor, backgroundColor: badgeBg },
-            ]}>
-            <View
-              style={[styles.summaryDot, { backgroundColor: statusColor }]}
+      {/* 3. QUICK ACTIONS */}
+      <View style={styles.sectionBlock}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <View style={{ width: quickCardWidth }}>
+            <QuickActionCard
+              title="Check Website"
+              subtitle="Verify any link before opening it"
+              icon={<GlobeLinkIcon size={22} color={SecurityPalette.primary} />}
+              onPress={() => navigation.navigate('UrlScanner')}
             />
-            <Text style={styles.summaryBannerText}>{summaryMessage}</Text>
           </View>
-
-          {/* 3-Factor Breakdown Pillars */}
-          <View style={styles.pillarsRow}>
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}>
-                <Text style={styles.pillarLabel}>Wi-Fi</Text>
-                <Text style={[styles.pillarValue, { color: '#38BDF8' }]}>
-                  {securityScore.wifiSafetyScore}%
-                </Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${securityScore.wifiSafetyScore}%`,
-                      backgroundColor: '#38BDF8',
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}>
-                <Text style={styles.pillarLabel}>Links</Text>
-                <Text
-                  style={[
-                    styles.pillarValue,
-                    { color: SecurityPalette.safe },
-                  ]}>
-                  {securityScore.urlHygieneScore}%
-                </Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${securityScore.urlHygieneScore}%`,
-                      backgroundColor: SecurityPalette.safe,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}>
-                <Text style={styles.pillarLabel}>Permissions</Text>
-                <Text
-                  style={[
-                    styles.pillarValue,
-                    { color: SecurityPalette.warning },
-                  ]}>
-                  {securityScore.appPermissionScore}%
-                </Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${securityScore.appPermissionScore}%`,
-                      backgroundColor: SecurityPalette.warning,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
+          <View style={{ width: quickCardWidth }}>
+            <QuickActionCard
+              title="Scan QR"
+              subtitle="Inspect QR codes safely"
+              icon={<QrMatrixIcon size={22} color={SecurityPalette.interactive} />}
+              onPress={() => navigation.navigate('QrScanner')}
+            />
           </View>
-
-          {/* Segmented Score State Switcher */}
-          <View style={styles.segmentedControl}>
-            <Pressable
-              onPress={() =>
-                setScore(84, 'Your device has 2 unverified permissions')
-              }
-              style={[
-                styles.segmentButton,
-                score >= 80 && {
-                  backgroundColor: 'rgba(0, 200, 83, 0.18)',
-                  borderColor: SecurityPalette.safe,
-                },
-              ]}>
-              <Text
-                style={[
-                  styles.segmentText,
-                  {
-                    color:
-                      score >= 80
-                        ? SecurityPalette.safe
-                        : SecurityPalette.textSecondary,
-                  },
-                ]}>
-                Safe (84)
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() =>
-                setScore(64, 'Your device has 3 unverified permissions')
-              }
-              style={[
-                styles.segmentButton,
-                score >= 50 &&
-                  score < 80 && {
-                    backgroundColor: 'rgba(255, 171, 0, 0.18)',
-                    borderColor: SecurityPalette.warning,
-                  },
-              ]}>
-              <Text
-                style={[
-                  styles.segmentText,
-                  {
-                    color:
-                      score >= 50 && score < 80
-                        ? SecurityPalette.warning
-                        : SecurityPalette.textSecondary,
-                  },
-                ]}>
-                Caution (64)
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() =>
-                setScore(
-                  36,
-                  'Unencrypted Wi-Fi & 4 high-risk app permissions detected',
-                )
-              }
-              style={[
-                styles.segmentButton,
-                score < 50 && {
-                  backgroundColor: 'rgba(213, 0, 0, 0.2)',
-                  borderColor: SecurityPalette.critical,
-                },
-              ]}>
-              <Text
-                style={[
-                  styles.segmentText,
-                  {
-                    color:
-                      score < 50
-                        ? SecurityPalette.critical
-                        : SecurityPalette.textSecondary,
-                  },
-                ]}>
-                High Risk (36)
-              </Text>
-            </Pressable>
+          <View style={{ width: quickCardWidth }}>
+            <QuickActionCard
+              title="Check Wi-Fi"
+              subtitle="See if your Wi-Fi is private"
+              icon={<WifiSignalIcon size={22} color={SecurityPalette.safe} />}
+              onPress={() => navigation.navigate('WifiAnalyzer')}
+            />
           </View>
-        </Surface>
+          <View style={{ width: quickCardWidth }}>
+            <QuickActionCard
+              title="Check Password"
+              subtitle="Test & create strong passwords"
+              icon={<LockSlidersIcon size={22} color={SecurityPalette.warning} />}
+              onPress={() => navigation.navigate('PasswordSecurity')}
+            />
+          </View>
+        </View>
+      </View>
 
-        {/* 3. ACTION GRID: 4 Core Protection Modules */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Protection Modules</Text>
-          <Text style={styles.sectionSubtitle}>Real-time telemetry</Text>
+      {/* 4. SECURITY STATUS */}
+      <View style={styles.sectionBlock}>
+        <View style={styles.sectionHeaderInline}>
+          <Text style={styles.sectionTitle}>Security Status</Text>
+          <Pressable onPress={() => navigation.navigate('SecurityCenter')}>
+            <Text style={styles.sectionLink}>Open Security Center →</Text>
+          </Pressable>
         </View>
 
-        <View style={[styles.actionGrid, { gap: gridGap }]}>
-          {ACTION_CARDS.map((card) => (
-            <Pressable
-              key={card.id}
-              onPress={() => navigation.navigate(card.route)}
-              accessibilityRole="button"
-              accessibilityLabel={`${card.title}. ${card.subtitle}`}
-              style={({ pressed }) => [
-                styles.actionCard,
-                {
-                  width: cardWidth,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
-                },
-              ]}>
-              <View>
-                <View style={styles.cardTopRow}>
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      {
-                        backgroundColor: card.tintBg,
-                        borderColor: card.accentColor,
-                      },
-                    ]}>
-                    {renderCardIcon(card.id, card.accentColor)}
-                  </View>
-                  <View
-                    style={[
-                      styles.cardBadge,
-                      { backgroundColor: card.tintBg },
-                    ]}>
-                    <Text
-                      style={[
-                        styles.cardBadgeText,
-                        { color: card.accentColor },
-                      ]}>
-                      {card.badge}
-                    </Text>
-                  </View>
-                </View>
+        <StatusCard
+          title="Device"
+          subtitle="Operating system and app checks are up to date"
+          status="SAFE"
+          statusLabel="✓ Good"
+          onPress={() => navigation.navigate('DeviceSecurity')}
+        />
+        <StatusCard
+          title="Network"
+          subtitle="Connected to WPA2/WPA3 protected home Wi-Fi"
+          status="SAFE"
+          statusLabel="✓ Good"
+          onPress={() => navigation.navigate('NetworkSecurity')}
+        />
+        <StatusCard
+          title="Account"
+          subtitle="Two-Factor Authentication is enabled"
+          status="SAFE"
+          statusLabel="✓ Good"
+          onPress={() => navigation.navigate('PasswordSecurity')}
+        />
+        <StatusCard
+          title="Privacy"
+          subtitle={
+            unverifiedPermissionsCount > 0
+              ? `${unverifiedPermissionsCount} apps have microphone or contact access to review`
+              : 'All app permissions have been reviewed'
+          }
+          status={unverifiedPermissionsCount > 0 ? 'ATTENTION' : 'SAFE'}
+          statusLabel={
+            unverifiedPermissionsCount > 0 ? '⚠ Needs attention' : '✓ Good'
+          }
+          onPress={() => navigation.navigate('PermissionAnalyzer')}
+        />
+      </View>
 
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {card.title}
-                </Text>
-                <Text style={styles.cardSubtitle} numberOfLines={2}>
-                  {card.subtitle}
-                </Text>
-              </View>
+      {/* 5. RECENT ACTIVITY */}
+      <View style={styles.sectionBlock}>
+        <View style={styles.sectionHeaderInline}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Pressable onPress={() => navigation.navigate('ActivityTimeline')}>
+            <Text style={styles.sectionLink}>View all activity →</Text>
+          </Pressable>
+        </View>
 
-              <View style={styles.cardFooterRow}>
-                <Text
-                  style={[styles.cardCtaText, { color: card.accentColor }]}>
-                  {card.ctaLabel}
-                </Text>
-                <ChevronRightIcon size={15} color={card.accentColor} />
-              </View>
-            </Pressable>
+        <View style={styles.activityCard}>
+          {activityTimeline.slice(0, 3).map((item) => (
+            <ActivityItemRow
+              key={item.id}
+              title={item.title}
+              subtitle={item.subtitle}
+              status={item.status}
+              statusLabel={item.statusLabel}
+              timestamp={item.timestamp}
+              onPress={() =>
+                item.routeTarget
+                  ? navigation.navigate(item.routeTarget as never)
+                  : navigation.navigate('ActivityTimeline')
+              }
+            />
           ))}
+          <View style={{ marginTop: Spacing.md }}>
+            <AppButton
+              label="View all activity"
+              onPress={() => navigation.navigate('ActivityTimeline')}
+              variant="secondary"
+              fullWidth
+            />
+          </View>
         </View>
+      </View>
 
-        {/* 4. MICRO-LEARNING CARD: Dynamic "Daily Cyber Tip" */}
-        <Surface style={styles.tipCard} elevation={1}>
-          <View style={styles.tipHeaderRow}>
-            <View style={styles.tipBadgeRow}>
-              <View style={styles.tipIconWrap}>
-                <BulbSparkIcon size={16} color={SecurityPalette.primary} />
-              </View>
-              <Text style={styles.tipCategoryText}>
-                DAILY CYBER TIP • {(tipIndex % typedTips.length) + 1}/
-                {typedTips.length}
-              </Text>
+      {/* 6. DAILY SECURITY TIP */}
+      <View style={styles.sectionBlock}>
+        <View style={styles.tipCard}>
+          <View style={styles.tipHeader}>
+            <View style={styles.tipTagRow}>
+              <BulbSparkIcon size={18} color={SecurityPalette.interactive} />
+              <Text style={styles.tipTagText}>Daily Security Tip</Text>
             </View>
-
             <Pressable
               onPress={() =>
                 setTipIndex((prev) => (prev + 1) % typedTips.length)
-              }
-              style={styles.nextTipPill}>
-              <Text style={styles.nextTipText}>Next Tip</Text>
+              }>
+              <Text style={styles.sectionLink}>Next tip →</Text>
             </Pressable>
           </View>
-
           <Text style={styles.tipTitle}>{currentTip.title}</Text>
           <Text style={styles.tipBody}>{currentTip.body}</Text>
-
-          <View style={styles.takeawayContainer}>
-            <Text style={styles.takeawayHeading}>RECOMMENDED HABIT</Text>
-            <Text style={styles.takeawayBody}>
-              {currentTip.actionableTakeaway}
+          <View style={styles.tipTakeawayBox}>
+            <Text style={styles.tipTakeawayText}>
+              ✓ {currentTip.actionableTakeaway}
             </Text>
           </View>
-
-          <Pressable
-            onPress={() => navigation.navigate('AwarenessCenter')}
-            style={styles.awarenessCenterBtn}>
-            <Text style={styles.awarenessCenterBtnText}>
-              Browse All Security Guides
-            </Text>
-            <ChevronRightIcon size={16} color={SecurityPalette.primary} />
-          </Pressable>
-        </Surface>
-      </ScrollView>
-    </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 };
 
@@ -442,333 +287,170 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SecurityPalette.background,
   },
-  scrollContent: {
-    paddingTop: 14,
-    paddingBottom: 34,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  brandLogoBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  brandOverline: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: SecurityPalette.primary,
-    letterSpacing: 1.2,
-  },
-  brandTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: SecurityPalette.textPrimary,
-    letterSpacing: -0.3,
-  },
-  protectionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  pulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    marginRight: 6,
-  },
-  protectionBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-  },
-  heroCard: {
-    backgroundColor: SecurityPalette.surface,
-    borderRadius: 24,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
-    marginBottom: 22,
-    alignItems: 'center',
-  },
-  heroGaugeWrap: {
-    marginVertical: 4,
-  },
-  heroHeadline: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: SecurityPalette.textPrimary,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  summaryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  summaryDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 7,
-  },
-  summaryBannerText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: SecurityPalette.textPrimary,
-  },
-  pillarsRow: {
-    flexDirection: 'row',
+  content: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+    maxWidth: 980,
     width: '100%',
-    gap: 8,
-    marginBottom: 14,
+    alignSelf: 'center',
   },
-  pillarBox: {
-    flex: 1,
-    backgroundColor: SecurityPalette.surfaceVariant,
-    borderRadius: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
-  },
-  pillarHeader: {
+  greetingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  pillarLabel: {
-    fontSize: 11,
-    color: SecurityPalette.textSecondary,
-    fontWeight: '600',
-  },
-  pillarValue: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  progressTrack: {
-    height: 4,
-    backgroundColor: SecurityPalette.background,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  segmentedControl: {
-    flexDirection: 'row',
-    width: '100%',
-    backgroundColor: SecurityPalette.background,
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    alignItems: 'center',
-  },
-  segmentText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: SecurityPalette.textPrimary,
-    letterSpacing: -0.2,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: SecurityPalette.textSecondary,
-    fontWeight: '500',
-  },
-  actionGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 22,
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
-  actionCard: {
-    backgroundColor: SecurityPalette.surface,
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
-    minHeight: 154,
-    justifyContent: 'space-between',
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  cardBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  cardTitle: {
-    fontSize: 14,
+  greetingTitle: {
+    fontSize: 26,
     fontWeight: '800',
     color: SecurityPalette.textPrimary,
     marginBottom: 4,
   },
-  cardSubtitle: {
-    fontSize: 11.5,
+  greetingSubtitle: {
+    fontSize: 15,
     color: SecurityPalette.textSecondary,
-    lineHeight: 16,
   },
-  cardFooterRow: {
+  assistantShortcut: {
+    backgroundColor: SecurityPalette.primarySoft,
+    borderColor: SecurityPalette.primary,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: Radius.pill,
+  },
+  assistantShortcutText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: SecurityPalette.primary,
+  },
+  scoreSectionCard: {
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    marginBottom: Spacing.xl,
+  },
+  scoreMainRow: {
+    flexDirection: 'column',
+    gap: Spacing.xl,
+  },
+  scoreMainRowWide: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 9,
-    borderTopWidth: 1,
-    borderTopColor: SecurityPalette.border,
   },
-  cardCtaText: {
-    fontSize: 11,
+  gaugeColumn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 210,
+  },
+  scoreStatusLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: Spacing.sm,
+  },
+  scorePlainHeadline: {
+    fontSize: 13,
+    color: SecurityPalette.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  breakdownColumn: {
+    flex: 1,
+  },
+  breakdownHeading: {
+    fontSize: 15,
     fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  breakdownList: {
+    gap: 12,
+  },
+  scoreFooterRow: {
+    marginTop: Spacing.xl,
+  },
+  sectionBlock: {
+    marginBottom: Spacing.xl,
+  },
+  sectionHeaderInline: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: SecurityPalette.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  sectionLink: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: SecurityPalette.primary,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+  },
+  activityCard: {
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
   },
   tipCard: {
     backgroundColor: SecurityPalette.surface,
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
     borderWidth: 1,
     borderColor: SecurityPalette.border,
   },
-  tipHeaderRow: {
+  tipHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: Spacing.sm,
   },
-  tipBadgeRow: {
+  tipTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
   },
-  tipIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(56, 189, 248, 0.14)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tipCategoryText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: SecurityPalette.primary,
-    letterSpacing: 0.6,
-  },
-  nextTipPill: {
-    backgroundColor: SecurityPalette.surfaceVariant,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
-  },
-  nextTipText: {
-    fontSize: 11,
+  tipTagText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: SecurityPalette.primary,
+    color: SecurityPalette.interactive,
   },
   tipTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
     color: SecurityPalette.textPrimary,
     marginBottom: 6,
   },
   tipBody: {
-    fontSize: 13,
+    fontSize: 14,
     color: SecurityPalette.textSecondary,
-    lineHeight: 19,
-    marginBottom: 12,
+    lineHeight: 21,
+    marginBottom: Spacing.md,
   },
-  takeawayContainer: {
-    backgroundColor: SecurityPalette.surfaceVariant,
-    borderRadius: 12,
+  tipTakeawayBox: {
+    backgroundColor: SecurityPalette.safeSoft,
+    borderRadius: Radius.md,
     padding: 12,
     borderLeftWidth: 3,
     borderLeftColor: SecurityPalette.safe,
-    marginBottom: 12,
   },
-  takeawayHeading: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: SecurityPalette.safe,
-    letterSpacing: 0.8,
-    marginBottom: 3,
-  },
-  takeawayBody: {
-    fontSize: 12,
-    color: SecurityPalette.textPrimary,
+  tipTakeawayText: {
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 17,
-  },
-  awarenessCenterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: SecurityPalette.surfaceVariant,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
-  },
-  awarenessCenterBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: SecurityPalette.primary,
+    color: SecurityPalette.textPrimary,
   },
 });
 

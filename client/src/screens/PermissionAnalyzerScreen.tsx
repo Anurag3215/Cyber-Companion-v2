@@ -1,96 +1,172 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Surface, Button } from 'react-native-paper';
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/security';
-import { SecurityPalette } from '../theme/theme';
+import { SecurityPalette, Spacing, Radius } from '../theme/theme';
+import { AppButton, StatusBadge } from '../design-system/components';
+import { useSecurityStore } from '../store/useSecurityStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PermissionAnalyzer'>;
 
-export const PermissionAnalyzerScreen: React.FC<Props> = ({ navigation }) => {
+/**
+ * SECTION 18: PRIVACY CENTER (/security/privacy)
+ * Shows Camera, Microphone, Location, Contacts, Storage, Notifications
+ * Each displays: Allowed | Denied | Limited + "Review Privacy"
+ */
+export const PermissionAnalyzerScreen: React.FC<Props> = () => {
+  const privacyPermissions = useSecurityStore(
+    (state) => state.privacyPermissions,
+  );
+  const cyclePrivacyPermission = useSecurityStore(
+    (state) => state.cyclePrivacyPermission,
+  );
+  const reviewAndTightenPrivacy = useSecurityStore(
+    (state) => state.reviewAndTightenPrivacy,
+  );
+
+  const [reviewedBanner, setReviewedBanner] = useState(false);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Surface style={styles.card} elevation={2}>
-        <Text style={styles.badge}>MODULE 4 • APP PERMISSIONS AUDITOR</Text>
-        <Text style={styles.title}>Installed App Permissions Audit</Text>
-        <Text style={styles.description}>
-          Audits installed applications for excessive access to your Camera,
-          SMS, Microphone, Contacts, and Location, translating technical
-          manifests into plain-language warnings.
-        </Text>
+      <Text style={styles.pageTitle}>Privacy Center</Text>
+      <Text style={styles.pageSubtitle}>
+        See which sensitive parts of your phone apps can use. Tap any permission
+        below to cycle between Allowed, Limited, and Denied.
+      </Text>
 
-        <View style={styles.auditItem}>
-          <Text style={styles.appTitle}>Flashlight Ultra LED</Text>
-          <Text style={styles.appWarning}>
-            ⚠ Unverified access to Contacts & Microphone
+      {reviewedBanner ? (
+        <View style={styles.successBanner}>
+          <Text style={styles.successText}>
+            ✓ Privacy settings reviewed! Unnecessary microphone and contact
+            permissions have been limited.
           </Text>
         </View>
+      ) : null}
 
-        <View style={styles.auditItem}>
-          <Text style={styles.appTitle}>Quick PDF Scanner Free</Text>
-          <Text style={styles.appWarning}>
-            ⚠ Unverified access to Read SMS Messages
-          </Text>
-        </View>
+      {privacyPermissions.map((perm) => {
+        const badgeStatus =
+          perm.status === 'Denied' || perm.status === 'Limited'
+            ? 'SAFE'
+            : perm.flaggedApps.length > 0
+              ? 'ATTENTION'
+              : 'SAFE';
 
-        <Button
-          mode="contained"
-          buttonColor={SecurityPalette.primary}
-          textColor="#061224"
-          onPress={() => navigation.goBack()}>
-          Back to Dashboard
-        </Button>
-      </Surface>
+        return (
+          <Pressable
+            key={perm.id}
+            onPress={() => cyclePrivacyPermission(perm.id)}
+            style={styles.permCard}>
+            <View style={styles.permHeader}>
+              <View>
+                <Text style={styles.permTitle}>{perm.name}</Text>
+                <Text style={styles.permCount}>
+                  {perm.appsCount} apps requested access
+                </Text>
+              </View>
+              <StatusBadge status={badgeStatus} customLabel={perm.status} />
+            </View>
+
+            <Text style={styles.permDesc}>{perm.plainDescription}</Text>
+
+            {perm.flaggedApps.length > 0 ? (
+              <View style={styles.flaggedBox}>
+                <Text style={styles.flaggedLabel}>
+                  ⚠ Needs attention: {perm.flaggedApps.join(', ')}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
+
+      <View style={{ marginTop: Spacing.md }}>
+        <AppButton
+          label="Review Privacy"
+          onPress={() => {
+            reviewAndTightenPrivacy();
+            setReviewedBanner(true);
+          }}
+          variant="primary"
+          fullWidth
+        />
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: SecurityPalette.background },
-  content: { padding: 18 },
-  card: {
-    backgroundColor: SecurityPalette.surface,
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
+  content: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxxl,
+    maxWidth: 820,
+    width: '100%',
+    alignSelf: 'center',
   },
-  badge: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#F43F5E',
-    marginBottom: 6,
-  },
-  title: {
-    fontSize: 20,
+  pageTitle: {
+    fontSize: 26,
     fontWeight: '800',
     color: SecurityPalette.textPrimary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  description: {
+  pageSubtitle: {
+    fontSize: 15,
+    color: SecurityPalette.textSecondary,
+    lineHeight: 22,
+    marginBottom: Spacing.lg,
+  },
+  successBanner: {
+    backgroundColor: SecurityPalette.safeSoft,
+    borderColor: SecurityPalette.safe,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: 14,
+    marginBottom: Spacing.lg,
+  },
+  successText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: SecurityPalette.safe,
+  },
+  permCard: {
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    marginBottom: Spacing.md,
+  },
+  permHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  permTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+  },
+  permCount: {
+    fontSize: 12,
+    color: SecurityPalette.textMuted,
+  },
+  permDesc: {
     fontSize: 14,
     color: SecurityPalette.textSecondary,
     lineHeight: 20,
-    marginBottom: 16,
   },
-  auditItem: {
-    backgroundColor: SecurityPalette.surfaceVariant,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: SecurityPalette.warning,
+  flaggedBox: {
+    marginTop: 10,
+    backgroundColor: SecurityPalette.warningSoft,
+    padding: 10,
+    borderRadius: Radius.sm,
   },
-  appTitle: {
-    fontSize: 14,
+  flaggedLabel: {
+    fontSize: 12.5,
     fontWeight: '700',
-    color: SecurityPalette.textPrimary,
-    marginBottom: 3,
-  },
-  appWarning: {
-    fontSize: 12,
     color: SecurityPalette.warning,
-    fontWeight: '600',
   },
 });
 
