@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment Variables (preserve .env.example templates)
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Android & Gradle Build Artifacts
+android/build/
+**/android/build/
+**/android/app/build/
+.gradle/
+**/.gradle/
+**/local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# iOS & CocoaPods Build Artifacts
+ios/Pods/
+**/ios/Pods/
+ios/build/
+**/ios/build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+DerivedData/
+
+# Metro & React Native Caches
+.metro-health-check*
+*.jsbundle
+.cxx/
+**/.cxx/
+.kotlin/
+**/.kotlin/
+
+# IDE & OS Caches
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs & Test Coverage
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+.nyc_output/

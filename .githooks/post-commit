@@ -1,0 +1,16 @@
+#!/bin/sh
+# Cyber Companion Automatic Feature -> Develop -> All Features Sync Hook
+
+if [ "$GIT_SYNC_ACTIVE" = "1" ]; then
+  exit 0
+fi
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+case "$CURRENT_BRANCH" in
+  feature/*)
+    echo "[Post-Commit Hook] Detected commit on '$CURRENT_BRANCH'. Automatically syncing with 'develop' and all 'feature/*' branches..."
+    export GIT_SYNC_ACTIVE=1
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "scripts/git-sync.ps1" -Action sync -Feature "$CURRENT_BRANCH"
+    ;;
+esac
