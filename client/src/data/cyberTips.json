@@ -1,0 +1,34 @@
+[
+  {
+    "id": "tip-01",
+    "title": "Look Twice Before Scanning Public QR Codes",
+    "category": "QR_SECURITY",
+    "body": "Attackers sometimes paste fake QR stickers over restaurant menus or parking meters ('Qishing'). Always preview the destination web address in Cyber Companion before entering any personal info.",
+    "actionableTakeaway": "Use the QR Verification Sandbox before opening unfamiliar QR links.",
+    "publishedAt": "2026-09-30"
+  },
+  {
+    "id": "tip-02",
+    "title": "Avoid Banking on Open Public Wi-Fi",
+    "category": "WIFI",
+    "body": "Free Wi-Fi at cafes or airports without a password ('Open' encryption) allows nearby devices to intercept unencrypted traffic.",
+    "actionableTakeaway": "Check Wi-Fi encryption with the Wi-Fi Risk Analyzer or switch to mobile data for sensitive logins.",
+    "publishedAt": "2026-09-29"
+  },
+  {
+    "id": "tip-03",
+    "title": "Audit Apps Asking for SMS or Microphone Access",
+    "category": "PERMISSIONS",
+    "body": "A simple flashlight, calculator, or wallpaper app never needs access to your text messages, contacts, or microphone.",
+    "actionableTakeaway": "Review high-risk permissions monthly using the App Permissions Auditor.",
+    "publishedAt": "2026-09-28"
+  },
+  {
+    "id": "tip-04",
+    "title": "Spot Urgent Delivery & Bank Text Scams",
+    "category": "PHISHING",
+    "body": "Smishing messages create artificial urgency—like a 'suspended account' or 'missed package fee'—to rush you into tapping a counterfeit link.",
+    "actionableTakeaway": "Paste suspicious text links into the Malicious URL Scanner before tapping.",
+    "publishedAt": "2026-09-27"
+  }
+]

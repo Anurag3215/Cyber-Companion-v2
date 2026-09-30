@@ -92,5 +92,5 @@ export type RootStackParamList = {
   UrlScanner: { initialUrl?: string } | undefined;
   QrScanner: undefined;
   PermissionAnalyzer: undefined;
-  CyberAwareness: undefined;
+  AwarenessCenter: undefined;
 };
