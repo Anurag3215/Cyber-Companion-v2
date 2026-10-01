@@ -70,7 +70,7 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ navigation }) => {
             Good morning, {firstName} 👋
           </Text>
           <Text style={styles.greetingSubtitle}>
-            Here's your security overview.
+            Let's keep you safe today.
           </Text>
         </View>
         <Pressable
@@ -119,6 +119,12 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ navigation }) => {
         </View>
 
         <View style={styles.scoreFooterRow}>
+          <Text style={styles.attentionBannerTitle}>
+            ⚠️ 2 items need your attention
+          </Text>
+          <Text style={styles.attentionBannerSubtitle}>
+            Weak password & public Wi-Fi settings
+          </Text>
           <AppButton
             label="Improve Security"
             onPress={() => {
@@ -371,6 +377,20 @@ const styles = StyleSheet.create({
   },
   scoreFooterRow: {
     marginTop: Spacing.xl,
+    alignItems: 'center',
+  },
+  attentionBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: SecurityPalette.warning,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  attentionBannerSubtitle: {
+    fontSize: 12,
+    color: SecurityPalette.textSecondary,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
   },
   sectionBlock: {
     marginBottom: Spacing.xl,

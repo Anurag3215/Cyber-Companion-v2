@@ -139,15 +139,15 @@ const INITIAL_USER: UserProfile = {
 
 const INITIAL_SECURITY_SCORE: HolisticSecurityScore = {
   overallScore: 84,
-  wifiSafetyScore: 88,
+  wifiSafetyScore: 75,
   urlHygieneScore: 90,
-  appPermissionScore: 72,
+  appPermissionScore: 80,
   breakdown: {
-    password: 86,
+    password: 85,
     device: 90,
-    network: 88,
-    privacy: 72,
-    awareness: 84,
+    network: 75,
+    privacy: 80,
+    awareness: 80,
   },
   severity: 'LOW',
   updatedAt: new Date().toISOString(),
@@ -157,7 +157,7 @@ const INITIAL_ASSISTANT_MESSAGES: readonly CyberAssistantMessage[] = [
   {
     id: 'msg-welcome',
     sender: 'assistant',
-    text: "Hello! I'm your Cyber Assistant. Ask me anything about suspicious links, text messages, Wi-Fi safety, or account protection—I'll explain it simply.",
+    text: "Hi! I'm your Cyber Assistant. How can I help you today?",
     timestamp: 'Just now',
   },
 ];
@@ -231,7 +231,7 @@ export const useSecurityStore = create<SecurityState>((set) => ({
 
   score: INITIAL_SECURITY_SCORE.overallScore,
   unverifiedPermissionsCount: 2,
-  summaryMessage: 'Your device has 2 permissions that need attention.',
+  summaryMessage: 'Weak password & public Wi-Fi settings',
   securityScore: INITIAL_SECURITY_SCORE,
 
   setScore: (rawScore, customSummary) => {
