@@ -114,6 +114,7 @@ export interface WifiRiskAssessment {
   readonly humanEncryptionLabel: string; // e.g. "Your Wi-Fi uses WPA2 security."
   readonly networkType: 'Private Home Network' | 'Public Wi-Fi Hotspot';
   readonly status: SecurityStatusLevel;
+  readonly isSafe?: boolean;
   readonly riskScore: number;
   readonly severity: RiskSeverity;
   readonly potentialRisks: readonly string[];
@@ -125,8 +126,8 @@ export interface WifiRiskAssessment {
 export type PermissionAccessState = 'Allowed' | 'Denied' | 'Limited';
 
 export interface PrivacyPermissionCategory {
-  readonly id: 'camera' | 'microphone' | 'location' | 'contacts' | 'storage' | 'notifications';
-  readonly name: 'Camera' | 'Microphone' | 'Location' | 'Contacts' | 'Storage' | 'Notifications';
+  readonly id: 'camera' | 'microphone' | 'location' | 'contacts' | 'storage' | 'notifications' | 'sms';
+  readonly name: 'Camera' | 'Microphone' | 'Location' | 'Contacts' | 'Storage' | 'Notifications' | 'SMS & Messages';
   readonly status: PermissionAccessState;
   readonly appsCount: number;
   readonly plainDescription: string;

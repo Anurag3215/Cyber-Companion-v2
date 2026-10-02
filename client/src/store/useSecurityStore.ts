@@ -350,38 +350,67 @@ export const useSecurityStore = create<SecurityState>((set) => ({
               ...perm,
               status: nextOrder[perm.status],
               flaggedApps:
-                nextOrder[perm.status] === 'Allowed' ? perm.flaggedApps : [],
+                nextOrder[perm.status] === 'Allowed'
+                  ? (perm.id === 'microphone' ? ['Flashlight Ultra LED'] : perm.id === 'contacts' ? ['Quick PDF Scanner'] : [])
+                  : [],
             }
           : perm,
       );
-      return { privacyPermissions: updated };
+
+      // Dynamic weighted formula: Score = 100 - (NetworkDeductions + PermissionDeductions + URLRiskDeductions)
+      const allowedFlagged = updated.filter((p) => p.status === 'Allowed' && p.flaggedApps.length > 0).length;
+      const permDeduction = allowedFlagged * 8;
+      const networkDeduction = state.lastWifiAssessment?.isSafe === false ? 20 : 0;
+      const urlDeduction = state.recentUrlScans.some((u) => u.status === 'DANGER') ? 15 : 0;
+      const computedScore = Math.max(0, Math.min(100, 100 - (permDeduction + networkDeduction + urlDeduction)));
+
+      return {
+        privacyPermissions: updated,
+        unverifiedPermissionsCount: allowedFlagged,
+        score: computedScore,
+        securityScore: {
+          ...state.securityScore,
+          overallScore: computedScore,
+          breakdown: {
+            ...state.securityScore.breakdown,
+            privacy: Math.max(50, 100 - permDeduction * 3),
+          },
+        },
+      };
     }),
 
   reviewAndTightenPrivacy: () =>
-    set((state) => ({
-      unverifiedPermissionsCount: 0,
-      score: Math.min(100, Math.max(state.score, 92)),
-      summaryMessage: 'Privacy permissions reviewed and secured.',
-      securityScore: {
-        ...state.securityScore,
-        overallScore: Math.min(100, Math.max(state.score, 92)),
-        appPermissionScore: 94,
-        breakdown: {
-          ...state.securityScore.breakdown,
-          privacy: 94,
-        },
-      },
-      privacyPermissions: state.privacyPermissions.map((perm) =>
-        perm.status === 'Allowed' && perm.flaggedApps.length > 0
+    set((state) => {
+      const updated = state.privacyPermissions.map((perm) =>
+        perm.flaggedApps.length > 0
           ? {
               ...perm,
-              status: 'Limited',
+              status: 'Limited' as const,
               flaggedApps: [],
               plainDescription: 'Reviewed and limited to active use only.',
             }
           : perm,
-      ),
-    })),
+      );
+      const networkDeduction = state.lastWifiAssessment?.isSafe === false ? 20 : 0;
+      const urlDeduction = state.recentUrlScans.some((u) => u.status === 'DANGER') ? 15 : 0;
+      const computedScore = Math.max(0, Math.min(100, 100 - (networkDeduction + urlDeduction)));
+
+      return {
+        unverifiedPermissionsCount: 0,
+        score: computedScore,
+        summaryMessage: 'All sensitive permissions have been reviewed and tightened.',
+        securityScore: {
+          ...state.securityScore,
+          overallScore: computedScore,
+          appPermissionScore: 95,
+          breakdown: {
+            ...state.securityScore.breakdown,
+            privacy: 95,
+          },
+        },
+        privacyPermissions: updated,
+      };
+    }),
 
   completedLessons: INITIAL_USER.completedLessons,
   quizHighScore: INITIAL_USER.quizHighScore,

@@ -35,10 +35,21 @@ export const PermissionAnalyzerScreen: React.FC<Props> = () => {
         below to cycle between Allowed, Limited, and Denied.
       </Text>
 
+      {/* HIGH-RISK COMBINATION ALERT (SMS + Location / Mic) */}
+      <View style={styles.highRiskBanner}>
+        <Text style={styles.highRiskTitle}>
+          ⚠️ High-Risk Combination Detected
+        </Text>
+        <Text style={styles.highRiskBody}>
+          Apps with SMS permission can intercept sensitive one-time passwords (OTPs).
+          Combining SMS access with background location allows tracking your physical identity.
+        </Text>
+      </View>
+
       {reviewedBanner ? (
         <View style={styles.successBanner}>
           <Text style={styles.successText}>
-            ✓ Privacy settings reviewed! Unnecessary microphone and contact
+            ✓ Privacy settings reviewed! Unnecessary microphone, contact, and SMS
             permissions have been limited.
           </Text>
         </View>
@@ -115,6 +126,25 @@ const styles = StyleSheet.create({
     color: SecurityPalette.textSecondary,
     lineHeight: 22,
     marginBottom: Spacing.lg,
+  },
+  highRiskBanner: {
+    backgroundColor: '#2D1418',
+    borderColor: SecurityPalette.critical,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    padding: 14,
+    marginBottom: Spacing.lg,
+  },
+  highRiskTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: SecurityPalette.critical,
+    marginBottom: 4,
+  },
+  highRiskBody: {
+    fontSize: 12.5,
+    color: '#F87171',
+    lineHeight: 18,
   },
   successBanner: {
     backgroundColor: SecurityPalette.safeSoft,

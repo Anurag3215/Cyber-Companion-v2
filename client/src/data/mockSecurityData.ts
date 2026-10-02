@@ -545,4 +545,12 @@ export const INITIAL_PRIVACY_PERMISSIONS: readonly PrivacyPermissionCategory[] =
     plainDescription: 'Security alerts and daily tips are active.',
     flaggedApps: [],
   },
+  {
+    id: 'sms',
+    name: 'SMS & Messages',
+    status: 'Limited',
+    appsCount: 2,
+    plainDescription: 'SMS permission allows apps to read sensitive one-time verification passwords (OTPs). Never grant this to untrusted apps.',
+    flaggedApps: [],
+  },
 ];
