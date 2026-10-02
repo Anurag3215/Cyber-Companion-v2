@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
 import { Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, UrlScanResult } from '../types/security';
@@ -9,6 +9,7 @@ import {
   ScanResultCard,
   LoadingStateView,
   ConfirmModal,
+  StatusBadge,
 } from '../design-system/components';
 import { QrMatrixIcon } from '../components/SecurityIcons';
 import { CyberSecurityService } from '../services/cyberService';
@@ -20,24 +21,26 @@ export const QrScannerScreen: React.FC<Props> = () => {
   const addScanHistoryItem = useSecurityStore(
     (state) => state.addScanHistoryItem,
   );
+
   const [scanning, setScanning] = useState(false);
-  const [extractedUrl, setExtractedUrl] = useState<string | null>(null);
+  const [isQuarantined, setIsQuarantined] = useState(false);
+  const [interceptedUrl, setInterceptedUrl] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<UrlScanResult | null>(null);
   const [confirmOpenVisible, setConfirmOpenVisible] = useState(false);
 
-  const simulateQrScan = (sampleUrl: string) => {
+  // ZERO AUTO-EXECUTION: Every barcode capture pauses and holds the payload in quarantine
+  const handleBarcodeCaptured = async (rawCode: string) => {
     setScanning(true);
     setScanResult(null);
-    setExtractedUrl(null);
+    setInterceptedUrl(rawCode);
+    setIsQuarantined(true);
 
-    setTimeout(async () => {
-      const res = await CyberSecurityService.analyzeUrl(sampleUrl);
-      setExtractedUrl(sampleUrl);
+    try {
+      const res = await CyberSecurityService.analyzeUrl(rawCode);
       setScanResult(res);
-      setScanning(false);
       addScanHistoryItem({
         type: 'QR',
-        target: sampleUrl,
+        target: rawCode,
         result:
           res.status === 'SAFE'
             ? 'Safe'
@@ -45,42 +48,77 @@ export const QrScannerScreen: React.FC<Props> = () => {
               ? 'Attention'
               : 'Dangerous',
         status: res.status,
-        summary: `QR scanned — ${res.insight.summary}`,
+        summary: `QR Intercepted — ${res.insight.summary}`,
       });
-    }, 500);
+    } catch {
+      Alert.alert('Scanner Error', 'Failed to inspect intercepted QR code.');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleProceedToBrowser = (url: string) => {
+    if (scanResult && scanResult.status !== 'SAFE') {
+      setConfirmOpenVisible(true);
+    } else {
+      Linking.openURL(url).catch(() => {
+        Alert.alert('Browser Error', 'Could not open URL.');
+      });
+    }
+  };
+
+  const handleDiscard = () => {
+    setIsQuarantined(false);
+    setInterceptedUrl(null);
+    setScanResult(null);
   };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.pageTitle}>QR Scanner</Text>
+      <Text style={styles.pageTitle}>QR Interception Sandbox</Text>
       <Text style={styles.pageSubtitle}>
-        Point your camera at a QR code or upload an image from your gallery. We
-        will show you the real website address before it opens.
+        Point your camera at a QR code. Cyber Companion holds every link in a
+        quarantine sandbox before anything is allowed to open.
       </Text>
 
-      {/* Camera Scanning Frame */}
+      {/* Camera Viewfinder with Visual Targeting Bounds */}
       <View style={styles.cameraCard}>
         <View style={styles.viewfinderBox}>
-          <QrMatrixIcon size={48} color={SecurityPalette.interactive} />
-          <Text style={styles.viewfinderTitle}>Camera QR Frame Ready</Text>
+          {/* Visual Targeting Corner Reticles */}
+          <View style={[styles.cornerReticle, styles.cornerTL]} />
+          <View style={[styles.cornerReticle, styles.cornerTR]} />
+          <View style={[styles.cornerReticle, styles.cornerBL]} />
+          <View style={[styles.cornerReticle, styles.cornerBR]} />
+
+          <QrMatrixIcon size={46} color={SecurityPalette.interactive} />
+          <Text style={styles.viewfinderTitle}>Hardware Viewfinder Active</Text>
           <Text style={styles.viewfinderSubtitle}>
-            Links inside QR codes are never opened automatically.
+            Zero auto-execution policy enforced.
           </Text>
         </View>
 
+        {/* Quick Test Vectors to simulate camera detections */}
         <View style={styles.actionButtonsStack}>
           <AppButton
-            label="Scan Safe Menu QR (Example)"
+            label="Scan Clean Menu QR (Verified Safe)"
             onPress={() =>
-              simulateQrScan('https://menu.freshbistro-official.com')
+              handleBarcodeCaptured('https://menu.freshbistro-official.com')
             }
             variant="primary"
             fullWidth
           />
           <AppButton
-            label="Upload Image from Gallery (Suspicious QR)"
+            label="Scan Test Phishing QR (Simulated Threat)"
             onPress={() =>
-              simulateQrScan('https://free-gift-claim-verify-login.xyz')
+              handleBarcodeCaptured('http://testsafebrowsing.appspot.com/s/phishing.html')
+            }
+            variant="secondary"
+            fullWidth
+          />
+          <AppButton
+            label="Scan Internal IP Target (SSRF Vector)"
+            onPress={() =>
+              handleBarcodeCaptured('http://192.168.1.1/admin-panel')
             }
             variant="secondary"
             fullWidth
@@ -88,45 +126,69 @@ export const QrScannerScreen: React.FC<Props> = () => {
         </View>
       </View>
 
-      {scanning ? (
+      {scanning && (
         <LoadingStateView
-          message="Analyzing QR code..."
-          subtext="Extracting web address and checking safety."
+          message="Quarantining Endpoint..."
+          subtext="Inspecting upstream threat intelligence and SSL certificates."
         />
-      ) : null}
+      )}
 
-      {extractedUrl && scanResult ? (
-        <View style={styles.extractedBox}>
-          <Text style={styles.extractedLabel}>EXTRACTED WEBSITE ADDRESS</Text>
-          <Text style={styles.extractedUrlText}>{extractedUrl}</Text>
+      {/* Quarantined Endpoint Audit Card */}
+      {isQuarantined && interceptedUrl && !scanning && (
+        <View style={styles.quarantineBox}>
+          <View style={styles.quarantineHeader}>
+            <View>
+              <Text style={styles.quarantineBadgeText}>QUARANTINE ACTIVE</Text>
+              <Text style={styles.quarantineTitle}>Endpoint Intercepted</Text>
+            </View>
+            {scanResult && <StatusBadge status={scanResult.status} />}
+          </View>
 
-          <ScanResultCard
-            status={scanResult.status}
-            headline={scanResult.insight.summary}
-            explanation={scanResult.explanation}
-            primaryActionLabel={
-              scanResult.status === 'SAFE'
-                ? 'Continue to Website'
-                : 'Proceed Anyway (Requires Confirmation)'
-            }
-            onPrimaryAction={() => {
-              if (scanResult.status !== 'SAFE') {
-                setConfirmOpenVisible(true);
-              }
-            }}
-          />
+          <Text style={styles.interceptedUrl}>{interceptedUrl}</Text>
+
+          {scanResult && (
+            <ScanResultCard
+              status={scanResult.status}
+              headline={scanResult.insight.summary}
+              explanation={scanResult.explanation}
+            />
+          )}
+
+          <View style={styles.quarantineActionsRow}>
+            <View style={{ flex: 1 }}>
+              <AppButton
+                label="Discard Link"
+                onPress={handleDiscard}
+                variant="secondary"
+                fullWidth
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppButton
+                label="Proceed to Browser"
+                onPress={() => handleProceedToBrowser(interceptedUrl)}
+                variant={scanResult?.status === 'SAFE' ? 'primary' : 'danger'}
+                fullWidth
+              />
+            </View>
+          </View>
         </View>
-      ) : null}
+      )}
 
       <ConfirmModal
         visible={confirmOpenVisible}
-        title="Warning: This QR link looks suspicious"
-        message="This QR code points to a website that may try to collect your password or payment details. Are you sure you want to open it?"
-        confirmLabel="Open Anyway"
-        cancelLabel="Stay Safe (Cancel)"
+        title="Warning: Suspicious Target Link"
+        message="This website has been flagged for phishing or dangerous content. Opening it in your browser could compromise your accounts. Are you sure you want to proceed?"
+        confirmLabel="Open Anyway (Unsafe)"
+        cancelLabel="Stay Safe (Discard)"
         isDanger
         onCancel={() => setConfirmOpenVisible(false)}
-        onConfirm={() => setConfirmOpenVisible(false)}
+        onConfirm={() => {
+          setConfirmOpenVisible(false);
+          if (interceptedUrl) {
+            Linking.openURL(interceptedUrl).catch(() => {});
+          }
+        }}
       />
     </ScrollView>
   );
@@ -161,16 +223,27 @@ const styles = StyleSheet.create({
     borderColor: SecurityPalette.border,
   },
   viewfinderBox: {
-    height: 210,
-    backgroundColor: SecurityPalette.background,
+    height: 220,
+    backgroundColor: '#050B17',
     borderRadius: Radius.lg,
-    borderWidth: 2,
-    borderColor: SecurityPalette.interactive,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
+    position: 'relative',
   },
+  cornerReticle: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderColor: SecurityPalette.interactive,
+  },
+  cornerTL: { top: 16, left: 16, borderTopWidth: 3, borderLeftWidth: 3 },
+  cornerTR: { top: 16, right: 16, borderTopWidth: 3, borderRightWidth: 3 },
+  cornerBL: { bottom: 16, left: 16, borderBottomWidth: 3, borderLeftWidth: 3 },
+  cornerBR: { bottom: 16, right: 16, borderBottomWidth: 3, borderRightWidth: 3 },
   viewfinderTitle: {
     fontSize: 16,
     fontWeight: '700',
@@ -186,25 +259,47 @@ const styles = StyleSheet.create({
   actionButtonsStack: {
     gap: 10,
   },
-  extractedBox: {
-    marginTop: Spacing.lg,
+  quarantineBox: {
+    marginTop: Spacing.xl,
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    borderWidth: 2,
+    borderColor: SecurityPalette.interactive,
   },
-  extractedLabel: {
+  quarantineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  quarantineBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: SecurityPalette.textSecondary,
-    letterSpacing: 0.7,
-    marginBottom: 4,
-  },
-  extractedUrlText: {
-    fontSize: 14,
-    fontWeight: '700',
     color: SecurityPalette.interactive,
-    backgroundColor: SecurityPalette.surface,
-    padding: 12,
-    borderRadius: Radius.md,
+    letterSpacing: 0.8,
+  },
+  quarantineTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: SecurityPalette.textPrimary,
+  },
+  interceptedUrl: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    backgroundColor: SecurityPalette.background,
+    padding: 10,
+    borderRadius: Radius.sm,
+    marginVertical: Spacing.md,
     borderWidth: 1,
     borderColor: SecurityPalette.border,
+  },
+  quarantineActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: Spacing.md,
   },
 });
 
