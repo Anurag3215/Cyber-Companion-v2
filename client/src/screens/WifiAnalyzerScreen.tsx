@@ -19,26 +19,33 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
     (state) => state.addScanHistoryItem,
   );
   const [checking, setChecking] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<'HOME' | 'PUBLIC'>('HOME');
+  const [selectedPreset, setSelectedPreset] = useState<'HOME' | 'PUBLIC' | 'CAPTIVE' | 'ROGUE'>('HOME');
 
-  const assessment =
-    selectedPreset === 'HOME'
-      ? CyberSecurityService.analyzeWifi('Home_Fiber_5G', 'WPA2', false)
-      : CyberSecurityService.analyzeWifi('Cafe_Free_Guest_WiFi', 'OPEN', true);
+  const getAssessment = (preset: 'HOME' | 'PUBLIC' | 'CAPTIVE' | 'ROGUE') => {
+    switch (preset) {
+      case 'HOME':
+        return CyberSecurityService.analyzeWifi('Home_Fiber_5G', 'WPA3', false);
+      case 'PUBLIC':
+        return CyberSecurityService.analyzeWifi('Airport_Free_Guest_WiFi', 'OPEN', true);
+      case 'CAPTIVE':
+        return CyberSecurityService.analyzeWifi('Hotel_Lobby_Guest', 'OPEN', true);
+      case 'ROGUE':
+        return CyberSecurityService.analyzeWifi('Starbucks_Unverified_Hotspot', 'WEP', true);
+    }
+  };
 
-  const switchNetworkCheck = (preset: 'HOME' | 'PUBLIC') => {
+  const assessment = getAssessment(selectedPreset);
+
+  const switchNetworkCheck = (preset: 'HOME' | 'PUBLIC' | 'CAPTIVE' | 'ROGUE') => {
     setChecking(true);
     setTimeout(() => {
       setSelectedPreset(preset);
       setChecking(false);
-      const next =
-        preset === 'HOME'
-          ? CyberSecurityService.analyzeWifi('Home_Fiber_5G', 'WPA2', false)
-          : CyberSecurityService.analyzeWifi('Cafe_Free_Guest_WiFi', 'OPEN', true);
+      const next = getAssessment(preset);
       addScanHistoryItem({
         type: 'Wi-Fi',
         target: next.ssid,
-        result: next.status === 'SAFE' ? 'Safe' : 'Attention',
+        result: next.status === 'SAFE' ? 'Safe' : (next.severity === 'CRITICAL' ? 'Dangerous' : 'Attention'),
         status: next.status,
         summary: next.humanEncryptionLabel,
       });
@@ -53,7 +60,7 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
         everyday browsing or banking.
       </Text>
 
-      {/* Preset Toggle to inspect Home vs Open Public Wi-Fi */}
+      {/* Preset Toggle to inspect different Wi-Fi scenarios */}
       <View style={styles.presetSwitchRow}>
         <Pressable
           onPress={() => switchNetworkCheck('HOME')}
@@ -66,7 +73,7 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
               styles.presetTabText,
               selectedPreset === 'HOME' && { color: '#FFFFFF' },
             ]}>
-            Home Wi-Fi (WPA2)
+            Home (WPA3)
           </Text>
         </Pressable>
         <Pressable
@@ -80,7 +87,35 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
               styles.presetTabText,
               selectedPreset === 'PUBLIC' && { color: '#FFFFFF' },
             ]}>
-            Open Public Wi-Fi
+            Public Open
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => switchNetworkCheck('CAPTIVE')}
+          style={[
+            styles.presetTab,
+            selectedPreset === 'CAPTIVE' && styles.presetTabActive,
+          ]}>
+          <Text
+            style={[
+              styles.presetTabText,
+              selectedPreset === 'CAPTIVE' && { color: '#FFFFFF' },
+            ]}>
+            Captive Portal
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => switchNetworkCheck('ROGUE')}
+          style={[
+            styles.presetTab,
+            selectedPreset === 'ROGUE' && styles.presetTabActive,
+          ]}>
+          <Text
+            style={[
+              styles.presetTabText,
+              selectedPreset === 'ROGUE' && { color: '#FFFFFF' },
+            ]}>
+            Rogue AP
           </Text>
         </Pressable>
       </View>

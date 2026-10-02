@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const threatRoutes = require('./routes/threatRoutes');
+const wifiRoutes = require('./routes/wifiRoutes');
 
 dotenv.config();
 
@@ -57,8 +58,9 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// 5. Threat Intelligence & Scoring API Routes
+// 5. Threat Intelligence & Wi-Fi Risk API Routes
 app.use('/api/v1', threatRoutes);
+app.use('/api/v1', wifiRoutes);
 
 // 6. 404 Fallback Handler
 app.use((req, res) => {
