@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const threatRoutes = require('./routes/threatRoutes');
 
 dotenv.config();
 
@@ -56,7 +57,10 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// 5. 404 Fallback Handler
+// 5. Threat Intelligence & Scoring API Routes
+app.use('/api/v1', threatRoutes);
+
+// 6. 404 Fallback Handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
