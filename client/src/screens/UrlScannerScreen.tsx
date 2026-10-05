@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -17,6 +17,7 @@ import {
   ErrorStateView,
   EmptyStateView,
 } from '../design-system/components';
+import { GlobeLinkIcon } from '../components/SecurityIcons';
 import { SecurityGatewayService } from '../services/api';
 import { useSecurityStore } from '../store/useSecurityStore';
 
@@ -25,6 +26,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'UrlScanner'>;
 export const UrlScannerScreen: React.FC<Props> = ({ route, navigation }) => {
   const addUrlScanResult = useSecurityStore((state) => state.addUrlScanResult);
   const addScanHistoryItem = useSecurityStore((state) => state.addScanHistoryItem);
+  const scanHistory = useSecurityStore((state) => state.scanHistory);
 
   const [urlInput, setUrlInput] = useState<string>(route.params?.initialUrl ?? '');
   const [scanState, setScanState] = useState<UrlScannerState>(
@@ -139,23 +141,31 @@ export const UrlScannerScreen: React.FC<Props> = ({ route, navigation }) => {
           }}
         />
 
-        <View style={styles.buttonActionRow}>
-          <View style={{ flex: 1, marginRight: Spacing.xs }}>
-            <AppButton
-              label="📋 Paste Clipboard"
-              onPress={handlePasteFromClipboard}
-              variant="secondary"
-              fullWidth
-            />
-          </View>
-          <View style={{ flex: 1, marginLeft: Spacing.xs }}>
-            <AppButton
-              label="Check Website"
-              onPress={() => runWebsiteCheck()}
-              variant="primary"
-              fullWidth
-            />
-          </View>
+        <View style={styles.topInputActionsRow}>
+          <Pressable onPress={handlePasteFromClipboard} style={styles.topActionPill}>
+            <Text style={styles.topActionPillText}>📋 Paste URL</Text>
+          </Pressable>
+          <Pressable onPress={handlePasteFromClipboard} style={styles.topActionPill}>
+            <Text style={styles.topActionPillText}>📄 From Clipboard</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (urlInput) {
+                Share.share({ message: urlInput }).catch(() => {});
+              }
+            }}
+            style={styles.topActionPill}>
+            <Text style={styles.topActionPillText}>🔗 Share</Text>
+          </Pressable>
+        </View>
+
+        <View style={{ marginTop: Spacing.sm }}>
+          <AppButton
+            label="Scan URL"
+            onPress={() => runWebsiteCheck()}
+            variant="primary"
+            fullWidth
+          />
         </View>
 
         <View style={styles.scannerHelperRow}>
@@ -182,13 +192,57 @@ export const UrlScannerScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       )}
 
-      {/* STATE 1 & 2: EMPTY / INPUT */}
-      {(scanState === 'EMPTY' || scanState === 'INPUT') && !result ? (
-        <EmptyStateView
-          title="Ready to check your link"
-          message="Enter an address above or tap 'Paste Clipboard' to scan any website link for security threats."
-        />
-      ) : null}
+      {/* RECENT SCANS SECTION (Screen 10) */}
+      {!result && (scanState === 'EMPTY' || scanState === 'INPUT') && (
+        <View style={styles.recentScansBlock}>
+          <Text style={styles.recentScansTitle}>Recent Scans</Text>
+          {scanHistory.filter((h) => h.type === 'URLs').length === 0 ? (
+            <View style={styles.emptyRecentBox}>
+              <View style={styles.emptySearchCircle}>
+                <GlobeLinkIcon size={32} color={SecurityPalette.primary} />
+              </View>
+              <Text style={styles.emptyRecentTitle}>No scans yet</Text>
+              <Text style={styles.emptyRecentSubtitle}>
+                Your scanned URLs will appear here.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.recentList}>
+              {scanHistory
+                .filter((h) => h.type === 'URLs')
+                .slice(0, 5)
+                .map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => {
+                      setUrlInput(item.target);
+                      runWebsiteCheck(item.target);
+                    }}
+                    style={styles.recentItemRow}>
+                    <View style={styles.recentItemIcon}>
+                      <GlobeLinkIcon size={18} color={SecurityPalette.primary} />
+                    </View>
+                    <View style={styles.recentItemTexts}>
+                      <Text style={styles.recentItemTarget} numberOfLines={1}>
+                        {item.target}
+                      </Text>
+                      <Text style={styles.recentItemTime}>{item.time}</Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.recentBadge,
+                        item.status === 'SAFE'
+                          ? { color: SecurityPalette.safe }
+                          : { color: SecurityPalette.critical },
+                      ]}>
+                      {item.result}
+                    </Text>
+                  </Pressable>
+                ))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* STATE 3: SCANNING */}
       {scanState === 'SCANNING' ? (
@@ -402,6 +456,107 @@ const styles = StyleSheet.create({
     color: SecurityPalette.textPrimary,
     maxWidth: '55%',
     textAlign: 'right',
+  },
+  /* Screen 10 & 11 Styles */
+  topInputActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  topActionPill: {
+    flex: 1,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: Radius.md,
+    backgroundColor: SecurityPalette.surfaceVariant,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topActionPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+  },
+  recentScansBlock: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.md,
+  },
+  recentScansTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  emptyRecentBox: {
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+  },
+  emptySearchCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: SecurityPalette.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  emptyRecentTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: 4,
+  },
+  emptyRecentSubtitle: {
+    fontSize: 13.5,
+    color: SecurityPalette.textSecondary,
+    textAlign: 'center',
+  },
+  recentList: {
+    gap: 8,
+  },
+  recentItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+  },
+  recentItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: SecurityPalette.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  recentItemTexts: {
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  recentItemTarget: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: 2,
+  },
+  recentItemTime: {
+    fontSize: 12,
+    color: SecurityPalette.textMuted,
+  },
+  recentBadge: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 

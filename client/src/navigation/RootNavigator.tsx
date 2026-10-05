@@ -27,6 +27,9 @@ import {
   ForgotPasswordScreen,
   VerifyScreen,
 } from '../screens/AuthScreens';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
+import { PrivacyCenterScreen } from '../screens/PrivacyCenterScreen';
+import { QuickScanModal } from '../components/QuickScanModal';
 
 // Main Feature Screens
 import { DashboardScreen } from '../screens/DashboardScreen';
@@ -135,6 +138,7 @@ export const RootNavigator: React.FC = () => {
     useState<keyof RootStackParamList>('Dashboard');
   const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [quickScanVisible, setQuickScanVisible] = useState(false);
 
   const isDesktop = width >= 960;
   const isTablet = width >= 680 && width < 960;
@@ -159,6 +163,11 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -344,7 +353,17 @@ export const RootNavigator: React.FC = () => {
               <Stack.Screen
                 name="PermissionAnalyzer"
                 component={PermissionAnalyzerScreen}
+                options={{ title: 'Permission Analyzer' }}
+              />
+              <Stack.Screen
+                name="PrivacyCenter"
+                component={PrivacyCenterScreen}
                 options={{ title: 'Privacy Center' }}
+              />
+              <Stack.Screen
+                name="Onboarding"
+                component={OnboardingScreen}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="AwarenessCenter"
@@ -412,7 +431,13 @@ export const RootNavigator: React.FC = () => {
                 return (
                   <Pressable
                     key={tab.label}
-                    onPress={() => navigateTo(tab.route)}
+                    onPress={() => {
+                      if (tab.label === 'Scan') {
+                        setQuickScanVisible(true);
+                      } else {
+                        navigateTo(tab.route);
+                      }
+                    }}
                     style={styles.bottomTabButton}>
                     <View
                       style={[
@@ -434,6 +459,15 @@ export const RootNavigator: React.FC = () => {
           ) : null}
         </View>
       </View>
+
+      <QuickScanModal
+        visible={quickScanVisible}
+        onClose={() => setQuickScanVisible(false)}
+        onSelectAction={(route) => {
+          setQuickScanVisible(false);
+          navigateTo(route);
+        }}
+      />
 
       <ConfirmModal
         visible={signOutModalVisible}

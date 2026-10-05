@@ -239,6 +239,7 @@ export interface CyberAwarenessTip {
 export type RootStackParamList = {
   // Authentication Flow
   Splash: undefined;
+  Onboarding: { slideIndex?: number } | undefined;
   Welcome: undefined;
   SignIn: undefined;
   SignUp: undefined;
@@ -261,6 +262,7 @@ export type RootStackParamList = {
   DeviceSecurity: undefined;
   NetworkSecurity: undefined;
   PermissionAnalyzer: undefined; // Privacy Center (/security/privacy)
+  PrivacyCenter: undefined; // Screen 20: Privacy Center
 
   // Learn & Awareness Section
   AwarenessCenter: undefined; // /learn

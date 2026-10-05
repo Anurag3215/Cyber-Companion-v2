@@ -193,74 +193,218 @@ export const PermissionAnalyzerScreen: React.FC<Props> = () => {
     setReviewedBanner(true);
   };
 
+  const [activeTab, setActiveTab] = useState<'InstalledApps' | 'Permissions'>('InstalledApps');
+
+  // Installed Apps Inventory (Screen 14 / 21)
+  const installedApps = [
+    {
+      id: 'app-1',
+      name: 'Camera Pro',
+      category: 'Media & Imaging',
+      permissions: ['Camera', 'Microphone'],
+      riskLevel: 'HIGH',
+      riskLabel: 'High Risk',
+      iconEmoji: '📷',
+    },
+    {
+      id: 'app-2',
+      name: 'City Maps & Transit',
+      category: 'Travel & Navigation',
+      permissions: ['Location (GPS)'],
+      riskLevel: 'MEDIUM',
+      riskLabel: 'Medium Risk',
+      iconEmoji: '🧭',
+    },
+    {
+      id: 'app-3',
+      name: 'Fast Web Browser',
+      category: 'Communication',
+      permissions: ['Storage', 'Location'],
+      riskLevel: 'LOW',
+      riskLabel: 'Low Risk',
+      iconEmoji: '🌐',
+    },
+    {
+      id: 'app-4',
+      name: 'Audio Studio & Music',
+      category: 'Entertainment',
+      permissions: ['Audio Playback', 'Storage'],
+      riskLevel: 'SAFE',
+      riskLabel: 'Safe',
+      iconEmoji: '🎵',
+    },
+  ];
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.headerBlock}>
         <Text style={styles.pageTitle}>Permission Analyzer</Text>
         <Text style={styles.pageSubtitle}>
-          Real-time device permission audit inspecting sensitive hardware sensors,
-          SMS OTP access, and dangerous permission combinations.
+          Review what your apps can access across hardware sensors and sensitive storage.
         </Text>
       </View>
 
-      {/* COMBINATION RISK ANALYSIS ENGINE */}
-      {hasCriticalCombo ? (
-        <View style={styles.highRiskBanner}>
-          <Text style={styles.highRiskTitle}>
-            🚨 CRITICAL RISK: SMS Access + Location Tracking
+      {/* SEGMENTED TABS (Screen 14/21) */}
+      <View style={styles.segmentedTabContainer}>
+        <Pressable
+          onPress={() => setActiveTab('InstalledApps')}
+          style={[
+            styles.segmentBtn,
+            activeTab === 'InstalledApps' && styles.segmentBtnActive,
+          ]}>
+          <Text
+            style={[
+              styles.segmentBtnText,
+              activeTab === 'InstalledApps' && styles.segmentBtnTextActive,
+            ]}>
+            Installed Apps
           </Text>
-          <Text style={styles.highRiskBody}>
-            Both SMS reading and Background Location are active. Malicious apps can
-            intercept your bank verification codes (OTPs) while correlating your physical
-            coordinates. Revoke SMS access in Device Settings.
-          </Text>
-          <Pressable onPress={handleOpenSettings} style={styles.bannerActionBtn}>
-            <Text style={styles.bannerActionText}>Open Device Settings →</Text>
-          </Pressable>
-        </View>
-      ) : hasAudioCombo ? (
-        <View style={[styles.highRiskBanner, { borderColor: SecurityPalette.warning }]}>
-          <Text style={[styles.highRiskTitle, { color: SecurityPalette.warning }]}>
-            ⚠️ HIGH RISK: Microphone + Location Active
-          </Text>
-          <Text style={styles.highRiskBody}>
-            Microphone and location access can allow continuous ambient audio monitoring
-            coupled with geographic triangulation.
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.safeBanner}>
-          <Text style={styles.safeTitle}>
-            ✓ Zero High-Risk Permission Combinations Active
-          </Text>
-          <Text style={styles.safeBody}>
-            Your sensitive verification codes (SMS) and hardware sensors are protected
-            against unverified background correlation.
-          </Text>
-        </View>
-      )}
+        </Pressable>
 
-      {reviewedBanner && (
-        <View style={styles.successBanner}>
-          <Text style={styles.successText}>
-            ✓ Privacy protection optimized! Security score updated to 96/100.
+        <Pressable
+          onPress={() => setActiveTab('Permissions')}
+          style={[
+            styles.segmentBtn,
+            activeTab === 'Permissions' && styles.segmentBtnActive,
+          ]}>
+          <Text
+            style={[
+              styles.segmentBtnText,
+              activeTab === 'Permissions' && styles.segmentBtnTextActive,
+            ]}>
+            Permissions
           </Text>
-        </View>
-      )}
-
-      {/* AUDIT STATUS & ACTIONS */}
-      <View style={styles.metaRow}>
-        <Text style={styles.metaLabel}>
-          Audited: {lastAuditTime}
-        </Text>
-        <Pressable onPress={runLiveAudit} style={styles.refreshBtn}>
-          {loading ? (
-            <ActivityIndicator size="small" color={SecurityPalette.primary} />
-          ) : (
-            <Text style={styles.refreshBtnText}>↻ Run Live Audit</Text>
-          )}
         </Pressable>
       </View>
+
+      {/* SUMMARY STATS BAR (Screen 14) */}
+      <View style={styles.summaryStatsRow}>
+        <View style={styles.statTile}>
+          <Text style={styles.statLabel}>Apps Reviewed</Text>
+          <Text style={styles.statNumber}>12</Text>
+        </View>
+        <View style={styles.statTile}>
+          <Text style={[styles.statLabel, { color: SecurityPalette.critical }]}>High Risk</Text>
+          <Text style={[styles.statNumber, { color: SecurityPalette.critical }]}>2</Text>
+        </View>
+        <View style={styles.statTile}>
+          <Text style={[styles.statLabel, { color: SecurityPalette.warning }]}>Medium Risk</Text>
+          <Text style={[styles.statNumber, { color: SecurityPalette.warning }]}>3</Text>
+        </View>
+        <View style={styles.statTile}>
+          <Text style={[styles.statLabel, { color: SecurityPalette.primary }]}>Low Risk</Text>
+          <Text style={[styles.statNumber, { color: SecurityPalette.primary }]}>7</Text>
+        </View>
+      </View>
+
+      {/* TAB 1: INSTALLED APPS */}
+      {activeTab === 'InstalledApps' ? (
+        <View style={styles.cardList}>
+          <Text style={styles.sectionHeaderTitle}>Installed Apps & Access</Text>
+          {installedApps.map((app) => (
+            <View key={app.id} style={styles.appCard}>
+              <View style={styles.appIconBox}>
+                <Text style={styles.appIconEmoji}>{app.iconEmoji}</Text>
+              </View>
+              <View style={styles.appInfoCol}>
+                <Text style={styles.appNameText}>{app.name}</Text>
+                <Text style={styles.appPermText}>
+                  {app.permissions.join(', ')}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.riskChip,
+                  app.riskLevel === 'HIGH'
+                    ? styles.riskChipHigh
+                    : app.riskLevel === 'MEDIUM'
+                      ? styles.riskChipMedium
+                      : app.riskLevel === 'LOW'
+                        ? styles.riskChipLow
+                        : styles.riskChipSafe,
+                ]}>
+                <Text
+                  style={[
+                    styles.riskChipText,
+                    app.riskLevel === 'HIGH'
+                      ? styles.riskChipTextHigh
+                      : app.riskLevel === 'MEDIUM'
+                        ? styles.riskChipTextMedium
+                        : app.riskLevel === 'LOW'
+                          ? styles.riskChipTextLow
+                          : styles.riskChipTextSafe,
+                  ]}>
+                  {app.riskLabel}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* TAB 2: HARDWARE PERMISSIONS */}
+      {activeTab === 'Permissions' ? (
+        <>
+          {/* COMBINATION RISK ANALYSIS ENGINE */}
+          {hasCriticalCombo ? (
+            <View style={styles.highRiskBanner}>
+              <Text style={styles.highRiskTitle}>
+                🚨 CRITICAL RISK: SMS Access + Location Tracking
+              </Text>
+              <Text style={styles.highRiskBody}>
+                Both SMS reading and Background Location are active. Malicious apps can
+                intercept your bank verification codes (OTPs) while correlating your physical
+                coordinates. Revoke SMS access in Device Settings.
+              </Text>
+              <Pressable onPress={handleOpenSettings} style={styles.bannerActionBtn}>
+                <Text style={styles.bannerActionText}>Open Device Settings →</Text>
+              </Pressable>
+            </View>
+          ) : hasAudioCombo ? (
+            <View style={[styles.highRiskBanner, { borderColor: SecurityPalette.warning }]}>
+              <Text style={[styles.highRiskTitle, { color: SecurityPalette.warning }]}>
+                ⚠️ HIGH RISK: Microphone + Location Active
+              </Text>
+              <Text style={styles.highRiskBody}>
+                Microphone and location access can allow continuous ambient audio monitoring
+                coupled with geographic triangulation.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.safeBanner}>
+              <Text style={styles.safeTitle}>
+                ✓ Zero High-Risk Permission Combinations Active
+              </Text>
+              <Text style={styles.safeBody}>
+                Your sensitive verification codes (SMS) and hardware sensors are protected
+                against unverified background correlation.
+              </Text>
+            </View>
+          )}
+
+          {reviewedBanner && (
+            <View style={styles.successBanner}>
+              <Text style={styles.successText}>
+                ✓ Privacy protection optimized! Security score updated to 96/100.
+              </Text>
+            </View>
+          )}
+
+          {/* AUDIT STATUS & ACTIONS */}
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>
+              Audited: {lastAuditTime}
+            </Text>
+            <Pressable onPress={runLiveAudit} style={styles.refreshBtn}>
+              {loading ? (
+                <ActivityIndicator size="small" color={SecurityPalette.primary} />
+              ) : (
+                <Text style={styles.refreshBtnText}>↻ Run Live Audit</Text>
+              )}
+            </Pressable>
+          </View>
+        </>
+      ) : null}
 
       {/* PERMISSION AUDIT CARDS */}
       <View style={styles.cardList}>
@@ -467,6 +611,133 @@ const styles = StyleSheet.create({
   actionsContainer: {
     marginTop: Spacing.sm,
     marginBottom: Spacing.xxl,
+  },
+  /* Screen 14 & 21 Styles */
+  segmentedTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: SecurityPalette.surfaceVariant,
+    borderRadius: Radius.lg,
+    padding: 4,
+    marginBottom: Spacing.md,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: Radius.md,
+  },
+  segmentBtnActive: {
+    backgroundColor: SecurityPalette.primary,
+  },
+  segmentBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: SecurityPalette.textSecondary,
+  },
+  segmentBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: Spacing.lg,
+  },
+  statTile: {
+    flex: 1,
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: SecurityPalette.textSecondary,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: SecurityPalette.textPrimary,
+  },
+  sectionHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  appCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    marginBottom: Spacing.sm,
+  },
+  appIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: SecurityPalette.surfaceVariant,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  appIconEmoji: {
+    fontSize: 22,
+  },
+  appInfoCol: {
+    flex: 1,
+  },
+  appNameText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: 2,
+  },
+  appPermText: {
+    fontSize: 12.5,
+    color: SecurityPalette.textSecondary,
+  },
+  riskChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  riskChipHigh: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  riskChipMedium: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  riskChipLow: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  riskChipSafe: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  riskChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  riskChipTextHigh: {
+    color: SecurityPalette.critical,
+  },
+  riskChipTextMedium: {
+    color: SecurityPalette.warning,
+  },
+  riskChipTextLow: {
+    color: SecurityPalette.primary,
+  },
+  riskChipTextSafe: {
+    color: SecurityPalette.safe,
   },
 });
 

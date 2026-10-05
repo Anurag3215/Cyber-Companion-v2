@@ -18,25 +18,35 @@ import { ShieldCheckIcon } from '../components/SecurityIcons';
 import { useSecurityStore } from '../store/useSecurityStore';
 
 /* ============================================================================
- * 1. SPLASH SCREEN (/splash)
+ * 1. SPLASH SCREEN (/splash) — Screen 1 in Design System
  * ========================================================================== */
 type SplashProps = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
 export const SplashScreen: React.FC<SplashProps> = ({ navigation }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace('Welcome');
-    }, 900);
+      navigation.replace('Onboarding');
+    }, 1500);
     return () => clearTimeout(timer);
   }, [navigation]);
 
   return (
-    <View style={[styles.centerScreen, { padding: Spacing.xl }]}>
-      <View style={styles.logoCircleLarge}>
-        <ShieldCheckIcon size={42} color={SecurityPalette.primary} />
+    <View style={styles.splashScreen}>
+      <View style={styles.splashContentCenter}>
+        <View style={styles.splashShieldOuter}>
+          <View style={styles.splashShieldInner}>
+            <ShieldCheckIcon size={64} color="#38BDF8" />
+          </View>
+        </View>
+        <Text style={styles.splashTitle}>Cyber Companion</Text>
+        <Text style={styles.splashSubtitle}>
+          Your Personal Cybersecurity{'\n'}Awareness & Protection Assistant
+        </Text>
       </View>
-      <Text style={styles.brandTitle}>Cyber Companion</Text>
-      <Text style={styles.brandTagline}>Stay Safe. Simply.</Text>
+
+      <View style={styles.splashBottomBar}>
+        <View style={styles.splashLoadingLine} />
+      </View>
     </View>
   );
 };
@@ -92,8 +102,8 @@ export const WelcomeScreen: React.FC<WelcomeProps> = ({ navigation }) => {
               fullWidth
             />
             <AppButton
-              label="Create Account"
-              onPress={() => navigation.navigate('SignUp')}
+              label="Onboarding Tour"
+              onPress={() => navigation.navigate('Onboarding')}
               variant="secondary"
               fullWidth
             />
@@ -105,15 +115,15 @@ export const WelcomeScreen: React.FC<WelcomeProps> = ({ navigation }) => {
 };
 
 /* ============================================================================
- * 3. SIGN IN SCREEN (/signin)
+ * 3. SIGN IN SCREEN (/signin) — Screen 5 in Design System
  * ========================================================================== */
 type SignInProps = NativeStackScreenProps<RootStackParamList, 'SignIn'>;
 
 export const SignInScreen: React.FC<SignInProps> = ({ navigation }) => {
   const signIn = useSecurityStore((state) => state.signIn);
-  const [email, setEmail] = useState('anurag@cybercompanion.app');
-  const [password, setPassword] = useState('SafeCitizen#2026');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState('user@cybercompanion.app');
+  const [password, setPassword] = useState('SafeUser#2026');
   const [error, setError] = useState('');
 
   const handleSignIn = () => {
@@ -125,76 +135,99 @@ export const SignInScreen: React.FC<SignInProps> = ({ navigation }) => {
     signIn(email);
   };
 
+  const handleSocialSignIn = (provider: string) => {
+    signIn(`${provider.toLowerCase()}@cybercompanion.app`);
+  };
+
   return (
     <View style={styles.screen}>
       <ScrollView
         contentContainerStyle={styles.authScroll}
         showsVerticalScrollIndicator={false}>
         <View style={styles.authCard}>
-          <View style={styles.logoCircleSmall}>
-            <ShieldCheckIcon size={26} color={SecurityPalette.primary} />
+          <View style={styles.logoCircleMedium}>
+            <ShieldCheckIcon size={36} color="#2563EB" />
           </View>
-          <Text style={styles.authTitle}>Welcome back</Text>
+          <Text style={styles.authBrandTitle}>Cyber Companion</Text>
+          <Text style={styles.authTitle}>Welcome Back</Text>
           <Text style={styles.authSubtitle}>
-            Sign in to view your personal security overview.
+            Sign in to continue to your secure space.
           </Text>
 
-          <AppInput
-            label="Email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChangeText={setEmail}
-          />
-
-          <AppInput
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
-            errorText={error || undefined}
-          />
-
-          <View style={styles.rowBetween}>
+          {/* SOCIAL SSO BUTTONS (Screen 5) */}
+          <View style={styles.ssoStack}>
             <Pressable
-              onPress={() => setRememberMe((prev) => !prev)}
-              style={styles.checkboxRow}>
-              <View
-                style={[
-                  styles.checkbox,
-                  rememberMe && styles.checkboxChecked,
-                ]}>
-                {rememberMe ? <Text style={styles.checkboxTick}>✓</Text> : null}
-              </View>
-              <Text style={styles.checkboxLabel}>Remember me</Text>
+              onPress={() => handleSocialSignIn('Google')}
+              style={styles.ssoButton}>
+              <Text style={styles.ssoIconGoogle}>G</Text>
+              <Text style={styles.ssoButtonText}>Continue with Google</Text>
             </Pressable>
 
-            <Pressable onPress={() => navigation.navigate('ForgotPassword')}>
-              <Text style={styles.linkText}>Forgot password?</Text>
+            <Pressable
+              onPress={() => handleSocialSignIn('Apple')}
+              style={styles.ssoButton}>
+              <Text style={styles.ssoIconApple}></Text>
+              <Text style={styles.ssoButtonText}>Continue with Apple</Text>
             </Pressable>
           </View>
 
-          <View style={styles.buttonStack}>
-            <AppButton
-              label="Sign In"
-              onPress={handleSignIn}
-              variant="primary"
-              fullWidth
-            />
-            <AppButton
-              label="Continue with Google"
-              onPress={() => signIn('anurag@gmail.com', 'Anurag Sharma')}
-              variant="secondary"
-              fullWidth
-            />
+          <View style={styles.orDividerRow}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>OR</Text>
+            <View style={styles.orLine} />
           </View>
 
-          <View style={styles.footerRow}>
-            <Text style={styles.footerPrompt}>New to Cyber Companion? </Text>
-            <Pressable onPress={() => navigation.navigate('SignUp')}>
-              <Text style={styles.linkText}>Create Account</Text>
+          {!showEmailForm ? (
+            <Pressable
+              onPress={() => setShowEmailForm(true)}
+              style={styles.continueEmailBtn}>
+              <Text style={styles.continueEmailIcon}>✉</Text>
+              <Text style={styles.continueEmailText}>Continue with Email</Text>
             </Pressable>
+          ) : (
+            <View style={styles.emailFormContainer}>
+              <AppInput
+                label="Email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChangeText={setEmail}
+              />
+
+              <AppInput
+                label="Password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                errorText={error || undefined}
+              />
+
+              <Pressable
+                onPress={() => navigation.navigate('ForgotPassword')}
+                style={{ alignSelf: 'flex-end', marginBottom: Spacing.md }}>
+                <Text style={styles.linkText}>Forgot password?</Text>
+              </Pressable>
+
+              <AppButton
+                label="Sign In"
+                onPress={handleSignIn}
+                variant="primary"
+                fullWidth
+              />
+            </View>
+          )}
+
+          <Pressable
+            onPress={() => signIn('guest@cybercompanion.app')}
+            style={styles.guestLink}>
+            <Text style={styles.guestLinkText}>Continue as Guest →</Text>
+          </Pressable>
+
+          <View style={styles.authFooterNotice}>
+            <Text style={styles.authFooterText}>
+              Your security and privacy are our priority
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -609,5 +642,176 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  /* Screen 1: Splash Screen Styles */
+  splashScreen: {
+    flex: 1,
+    backgroundColor: '#07101E',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.xxxl,
+    paddingHorizontal: Spacing.xl,
+  },
+  splashContentCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashShieldOuter: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  splashShieldInner: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.5)',
+  },
+  splashTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  splashSubtitle: {
+    fontSize: 15,
+    color: '#94A3B8',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  splashBottomBar: {
+    width: 180,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  splashLoadingLine: {
+    width: '65%',
+    height: '100%',
+    backgroundColor: '#38BDF8',
+    borderRadius: 2,
+  },
+  /* Screen 5: Login & SSO Styles */
+  logoCircleMedium: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: Spacing.sm,
+  },
+  authBrandTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2563EB',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  ssoStack: {
+    width: '100%',
+    gap: 12,
+    marginBottom: Spacing.lg,
+  },
+  ssoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    gap: 12,
+  },
+  ssoIconGoogle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#EA4335',
+  },
+  ssoIconApple: {
+    fontSize: 20,
+    color: '#0F172A',
+  },
+  ssoButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  orDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+    gap: 12,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  orText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  continueEmailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 50,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+    gap: 10,
+    marginBottom: Spacing.md,
+  },
+  continueEmailIcon: {
+    fontSize: 18,
+    color: '#475569',
+  },
+  continueEmailText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  emailFormContainer: {
+    width: '100%',
+    marginBottom: Spacing.md,
+  },
+  guestLink: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  guestLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  authFooterNotice: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  authFooterText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 });

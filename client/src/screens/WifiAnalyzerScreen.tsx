@@ -308,13 +308,67 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
             </View>
           )}
 
-          <View style={{ marginTop: Spacing.lg }}>
-            <AppButton
-              label="Re-Analyze Wi-Fi Network"
-              onPress={runLiveWifiScan}
-              variant="secondary"
-              fullWidth
-            />
+          {/* BUTTON ACTIONS (Screen 9) */}
+          <View style={styles.resultActionsRow}>
+            <View style={{ flex: 1 }}>
+              <AppButton
+                label="Scan Again"
+                onPress={runLiveWifiScan}
+                variant="primary"
+                fullWidth
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppButton
+                label={showAdvanced ? "Hide Details" : "View Details"}
+                onPress={() => setShowAdvanced(!showAdvanced)}
+                variant="secondary"
+                fullWidth
+              />
+            </View>
+          </View>
+
+          {/* OTHER NETWORKS LIST (Screen 8) */}
+          <View style={styles.otherNetworksSection}>
+            <Text style={styles.otherNetworksTitle}>Nearby Wireless Networks</Text>
+            <View style={styles.networkItemCard}>
+              <View style={styles.networkItemInfo}>
+                <Text style={styles.networkItemSsid}>WiFi_5G</Text>
+                <Text style={styles.networkItemSecurity}>WPA3 Personal (Strong)</Text>
+              </View>
+              <View style={[styles.networkBadge, styles.networkBadgeSafe]}>
+                <Text style={styles.networkBadgeTextSafe}>Secure</Text>
+              </View>
+            </View>
+            <View style={styles.networkItemCard}>
+              <View style={styles.networkItemInfo}>
+                <Text style={styles.networkItemSsid}>HomeNetwork</Text>
+                <Text style={styles.networkItemSecurity}>WPA2 Personal (Standard)</Text>
+              </View>
+              <View style={[styles.networkBadge, styles.networkBadgeSafe]}>
+                <Text style={styles.networkBadgeTextSafe}>Secure</Text>
+              </View>
+            </View>
+            <View style={styles.networkItemCard}>
+              <View style={styles.networkItemInfo}>
+                <Text style={styles.networkItemSsid}>MobileHotspot</Text>
+                <Text style={styles.networkItemSecurity}>WPA3 Personal (Strong)</Text>
+              </View>
+              <View style={[styles.networkBadge, styles.networkBadgeSafe]}>
+                <Text style={styles.networkBadgeTextSafe}>Secure</Text>
+              </View>
+            </View>
+            <View style={styles.networkItemCard}>
+              <View style={styles.networkItemInfo}>
+                <Text style={styles.networkItemSsid}>Public_Guest</Text>
+                <Text style={[styles.networkItemSecurity, { color: SecurityPalette.critical }]}>
+                  Open / Unencrypted
+                </Text>
+              </View>
+              <View style={[styles.networkBadge, styles.networkBadgeWarning]}>
+                <Text style={styles.networkBadgeTextWarning}>Open Risk</Text>
+              </View>
+            </View>
           </View>
         </View>
       )}
@@ -470,6 +524,69 @@ const styles = StyleSheet.create({
     color: SecurityPalette.textPrimary,
     maxWidth: '55%',
     textAlign: 'right',
+  },
+  /* Screen 8 & 9 Styles */
+  resultActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  otherNetworksSection: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: SecurityPalette.border,
+  },
+  otherNetworksTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  networkItemCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    marginBottom: Spacing.sm,
+  },
+  networkItemInfo: {
+    flex: 1,
+  },
+  networkItemSsid: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: 2,
+  },
+  networkItemSecurity: {
+    fontSize: 12.5,
+    color: SecurityPalette.textSecondary,
+  },
+  networkBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  networkBadgeSafe: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  networkBadgeWarning: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  networkBadgeTextSafe: {
+    color: SecurityPalette.safe,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  networkBadgeTextWarning: {
+    color: SecurityPalette.critical,
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
 

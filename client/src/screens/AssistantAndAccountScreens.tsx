@@ -387,6 +387,7 @@ export const SettingsScreen: React.FC<SettingsProps> = ({ navigation }) => {
   const [emailInput, setEmailInput] = useState(user.email);
   const [savedNotice, setSavedNotice] = useState('');
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
+  const [advancedMode, setAdvancedMode] = useState(false);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -488,14 +489,21 @@ export const SettingsScreen: React.FC<SettingsProps> = ({ navigation }) => {
         />
       </View>
 
-      {/* 4. PRIVACY */}
+      {/* 4. PRIVACY (Screen 20 Link) */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Privacy</Text>
+        <StatusCard
+          title="Privacy Center"
+          subtitle="Your data, your control — camera, network, and app sensor access"
+          status="SAFE"
+          statusLabel="Open →"
+          onPress={() => navigation.navigate('PrivacyCenter')}
+        />
         <StatusCard
           title="App permissions"
           subtitle="Review Camera, Microphone, Contacts, and Location access"
           status="SAFE"
-          statusLabel="Manage →"
+          statusLabel="Audit →"
           onPress={() => navigation.navigate('PermissionAnalyzer')}
         />
         <StatusCard
@@ -506,9 +514,16 @@ export const SettingsScreen: React.FC<SettingsProps> = ({ navigation }) => {
         />
       </View>
 
-      {/* 5. APPEARANCE & 6. LANGUAGE */}
+      {/* 5. ADVANCED MODE & APPEARANCE (Screen 19) */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Appearance & Language</Text>
+        <Text style={styles.cardTitle}>Preferences & Modes</Text>
+        <StatusCard
+          title="Advanced Mode"
+          subtitle="Show deep technical telemetry (DNS, SSL ciphers, raw headers, threat hashes)"
+          status={advancedMode ? 'SAFE' : 'ATTENTION'}
+          statusLabel={advancedMode ? 'Active' : 'Simple'}
+          onPress={() => setAdvancedMode((prev) => !prev)}
+        />
         <AppDropdown
           label="Appearance"
           selectedValue={appearanceMode}
