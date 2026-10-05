@@ -13,11 +13,11 @@ import {
   ThreatCard,
   ScanResultCard,
   StatusBadge,
+  EmptyStateView,
 } from '../design-system/components';
 import {
   LEARNING_TOPICS,
   QUIZ_QUESTIONS,
-  THREAT_ALERTS,
   SECURITY_NEWS,
 } from '../data/mockSecurityData';
 import { useSecurityStore } from '../store/useSecurityStore';
@@ -347,20 +347,21 @@ const ALERT_CATEGORIES: readonly ('All' | ThreatAlertCategory)[] = [
 ];
 
 export const ThreatAlertsScreen: React.FC<ThreatsProps> = ({ navigation }) => {
+  const threatAlerts = useSecurityStore((state) => state.threatAlerts);
   const [selectedCategory, setSelectedCategory] = useState<
     'All' | ThreatAlertCategory
   >('All');
 
   const filtered =
     selectedCategory === 'All'
-      ? THREAT_ALERTS
-      : THREAT_ALERTS.filter((a) => a.severity === selectedCategory);
+      ? threatAlerts
+      : threatAlerts.filter((a) => a.severity === selectedCategory);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.pageTitle}>Threat Alerts</Text>
       <Text style={styles.pageSubtitle}>
-        Timely warnings and security items explained in plain language.
+        Timely warnings and security items detected from live scans and device audits.
       </Text>
 
       <View style={styles.tabsRow}>
@@ -383,19 +384,28 @@ export const ThreatAlertsScreen: React.FC<ThreatsProps> = ({ navigation }) => {
         ))}
       </View>
 
-      {filtered.map((alert) => (
-        <ThreatCard
-          key={alert.id}
-          title={alert.title}
-          severity={alert.severity}
-          date={alert.date}
-          description={alert.summary}
-          recommendedAction={alert.explanation.whatShouldIDo[0]}
-          onPress={() =>
-            navigation.navigate('ThreatDetail', { alertId: alert.id })
-          }
+      {filtered.length === 0 ? (
+        <EmptyStateView
+          title="You're all clear."
+          message="No active security threats, phishing attempts, or unsafe network risks detected on your device."
+          actionLabel="Check a Website"
+          onAction={() => navigation.navigate('UrlScanner')}
         />
-      ))}
+      ) : (
+        filtered.map((alert) => (
+          <ThreatCard
+            key={alert.id}
+            title={alert.title}
+            severity={alert.severity}
+            date={alert.date}
+            description={alert.summary}
+            recommendedAction={alert.explanation.whatShouldIDo[0]}
+            onPress={() =>
+              navigation.navigate('ThreatDetail', { alertId: alert.id })
+            }
+          />
+        ))
+      )}
     </ScrollView>
   );
 };
@@ -409,9 +419,21 @@ export const ThreatDetailScreen: React.FC<ThreatDetailProps> = ({
   route,
   navigation,
 }) => {
-  const alert =
-    THREAT_ALERTS.find((a) => a.id === route.params.alertId) ??
-    THREAT_ALERTS[0];
+  const threatAlerts = useSecurityStore((state) => state.threatAlerts);
+  const alert = threatAlerts.find((a) => a.id === route.params.alertId);
+
+  if (!alert) {
+    return (
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <EmptyStateView
+          title="Threat alert not found"
+          message="This alert has either been resolved or cleared from active monitors."
+          actionLabel="Back to Threat Alerts"
+          onAction={() => navigation.goBack()}
+        />
+      </ScrollView>
+    );
+  }
 
   const mappedStatus =
     alert.severity === 'Critical' || alert.severity === 'High'

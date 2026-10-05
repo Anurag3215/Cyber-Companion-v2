@@ -209,6 +209,17 @@ export const ProfileScreen: React.FC<ProfileProps> = ({ navigation }) => {
 
   const [signOutModalVisible, setSignOutModalVisible] = useState(false);
 
+  // Dynamic Gamification Metrics calculated strictly from actual user events
+  const awarenessPoints =
+    scanHistory.length * 20 +
+    completedLessons.length * 25 +
+    (quizHighScore > 0 ? quizHighScore : 0);
+  const userLevel = Math.max(1, Math.floor(awarenessPoints / 100) + 1);
+  const currentStreak = scanHistory.length > 0 ? 1 : 0;
+  const weeklyGoalTarget = 5;
+  const weeklyGoalCompleted = Math.min(weeklyGoalTarget, scanHistory.length);
+  const hasUnlockedBadges = user.achievements.some((a) => a.unlocked);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.pageTitle}>Profile</Text>
@@ -223,7 +234,7 @@ export const ProfileScreen: React.FC<ProfileProps> = ({ navigation }) => {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.profileName}>{user.fullName}</Text>
-          <Text style={styles.profileEmail}>{user.email}</Text>
+          <Text style={styles.profileEmail}>{user.email || 'Local Secure Session'}</Text>
           <Text style={styles.profileSince}>
             Protected since {user.memberSince}
           </Text>
@@ -234,7 +245,7 @@ export const ProfileScreen: React.FC<ProfileProps> = ({ navigation }) => {
       <View style={styles.statsGrid}>
         <View style={styles.statBox}>
           <Text style={[styles.statNumber, { color: SecurityPalette.safe }]}>
-            {score}/100
+            {score !== null ? `${score}/100` : '--'}
           </Text>
           <Text style={styles.statLabel}>Security Score</Text>
         </View>
@@ -260,18 +271,57 @@ export const ProfileScreen: React.FC<ProfileProps> = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Achievements */}
+      {/* GAMIFICATION & PROGRESS */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Achievements</Text>
-        {user.achievements.map((ach) => (
-          <StatusCard
-            key={ach.id}
-            title={ach.title}
-            subtitle={ach.description}
-            status={ach.unlocked ? 'SAFE' : 'ATTENTION'}
-            statusLabel={ach.unlocked ? '✓ Unlocked' : 'In Progress'}
-          />
-        ))}
+        <Text style={styles.cardTitle}>Cyber Gamification</Text>
+        <View style={styles.statsGrid}>
+          <View style={styles.statBox}>
+            <Text style={[styles.statNumber, { color: SecurityPalette.interactive }]}>
+              {awarenessPoints}
+            </Text>
+            <Text style={styles.statLabel}>Awareness Points</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={[styles.statNumber, { color: SecurityPalette.primary }]}>
+              Level {userLevel}
+            </Text>
+            <Text style={styles.statLabel}>Cyber Rank</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={[styles.statNumber, { color: SecurityPalette.safe }]}>
+              {currentStreak}d
+            </Text>
+            <Text style={styles.statLabel}>Security Streak</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={[styles.statNumber, { color: SecurityPalette.warning }]}>
+              {weeklyGoalCompleted}/{weeklyGoalTarget}
+            </Text>
+            <Text style={styles.statLabel}>Weekly Goal</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Achievements / Badges */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Security Badges</Text>
+        {!hasUnlockedBadges ? (
+          <View style={styles.emptyBadgeBox}>
+            <Text style={styles.emptyBadgeText}>
+              Start your first security activity to earn your first badge.
+            </Text>
+          </View>
+        ) : (
+          user.achievements.map((ach) => (
+            <StatusCard
+              key={ach.id}
+              title={ach.title}
+              subtitle={ach.description}
+              status={ach.unlocked ? 'SAFE' : 'ATTENTION'}
+              statusLabel={ach.unlocked ? '✓ Unlocked' : 'In Progress'}
+            />
+          ))
+        )}
       </View>
 
       <View style={styles.actionsStack}>
@@ -750,5 +800,18 @@ const styles = StyleSheet.create({
   aboutItem: {
     fontSize: 12,
     color: SecurityPalette.textSecondary,
+  },
+  emptyBadgeBox: {
+    padding: Spacing.md,
+    backgroundColor: SecurityPalette.surfaceVariant,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emptyBadgeText: {
+    fontSize: 13,
+    color: SecurityPalette.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

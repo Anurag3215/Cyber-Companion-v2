@@ -49,4 +49,19 @@ router.post(
   wifiController.scanWifi
 );
 
+router.post(
+  '/analyze/wifi',
+  [
+    body('ssid').optional().isString().trim().isLength({ max: 64 }),
+    body('bssid').optional().isString().trim(),
+    body('securityType').optional().isString().trim(),
+    body('rssi').optional().isNumeric(),
+    body('frequency').optional().isNumeric(),
+    body('isCaptivePortal').optional().isBoolean(),
+    body('isArpSpoofed').optional().isBoolean(),
+    body('hasDnsTampering').optional().isBoolean(),
+  ],
+  wifiController.scanWifi
+);
+
 module.exports = router;

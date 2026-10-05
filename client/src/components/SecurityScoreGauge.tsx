@@ -8,7 +8,7 @@ import { getScoreVisualMeta, SecurityPalette } from '../theme/theme';
 export interface SecurityScoreGaugeProps {
   readonly size?: number;
   readonly strokeWidth?: number;
-  readonly scoreOverride?: number;
+  readonly scoreOverride?: number | null;
 }
 
 export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
@@ -18,23 +18,35 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
 }) => {
   const storeScore = useSecurityStore((state) => state.score);
   const rawScore = scoreOverride !== undefined ? scoreOverride : storeScore;
-  const normalizedScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+  const isUncalculated = rawScore === null || rawScore === undefined;
+  const normalizedScore = isUncalculated ? 0 : Math.max(0, Math.min(100, Math.round(rawScore)));
 
-  const { color, badgeBg, label } = getScoreVisualMeta(normalizedScore);
+  const meta = isUncalculated
+    ? {
+        color: SecurityPalette.textSecondary,
+        badgeBg: SecurityPalette.surfaceVariant,
+        label: 'Pending Scan',
+      }
+    : getScoreVisualMeta(normalizedScore);
 
   const center = size / 2;
   const outerRingRadius = center - 4;
   const radius = (size - strokeWidth * 2 - 8) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset =
-    circumference - (normalizedScore / 100) * circumference;
+  const strokeDashoffset = isUncalculated
+    ? circumference
+    : circumference - (normalizedScore / 100) * circumference;
 
   return (
     <View
       style={[styles.container, { width: size, height: size }]}
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={`Holistic Security Score ${normalizedScore} out of 100, status ${label}`}
+      accessibilityLabel={
+        isUncalculated
+          ? 'Security score not calculated yet'
+          : `Holistic Security Score ${normalizedScore} out of 100, status ${meta.label}`
+      }
       accessibilityValue={{ min: 0, max: 100, now: normalizedScore }}>
       <Svg width={size} height={size} style={styles.svg}>
         {/* Subtle Outer Telemetry Ring */}
@@ -53,7 +65,7 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
           cx={center}
           cy={center}
           r={radius}
-          stroke={color}
+          stroke={meta.color}
           strokeOpacity={0.14}
           strokeWidth={strokeWidth + 8}
           fill="transparent"
@@ -74,7 +86,7 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
           cx={center}
           cy={center}
           r={radius}
-          stroke={color}
+          stroke={meta.color}
           strokeWidth={strokeWidth}
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={strokeDashoffset}
@@ -87,17 +99,23 @@ export const SecurityScoreGauge: React.FC<SecurityScoreGaugeProps> = ({
 
       <View style={styles.centerContent}>
         <Text style={styles.caption}>SECURITY SCORE</Text>
-        <View style={styles.scoreRow}>
-          <Text style={[styles.scoreNumber, { color }]}>{normalizedScore}</Text>
-          <Text style={styles.scoreMax}>/100</Text>
-        </View>
+        {isUncalculated ? (
+          <View style={styles.uncalculatedBox}>
+            <Text style={styles.uncalculatedText}>Not calculated yet</Text>
+          </View>
+        ) : (
+          <View style={styles.scoreRow}>
+            <Text style={[styles.scoreNumber, { color: meta.color }]}>{normalizedScore}</Text>
+            <Text style={styles.scoreMax}>/100</Text>
+          </View>
+        )}
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: badgeBg, borderColor: color },
+            { backgroundColor: meta.badgeBg, borderColor: meta.color },
           ]}>
-          <View style={[styles.statusDot, { backgroundColor: color }]} />
-          <Text style={[styles.statusText, { color }]}>{label}</Text>
+          <View style={[styles.statusDot, { backgroundColor: meta.color }]} />
+          <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
         </View>
       </View>
     </View>
@@ -160,6 +178,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.7,
+  },
+  uncalculatedBox: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  uncalculatedText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: SecurityPalette.textSecondary,
+    textAlign: 'center',
   },
 });
 

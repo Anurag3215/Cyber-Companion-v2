@@ -11,12 +11,14 @@ import {
   PrivacyPermissionCategory,
   CyberAssistantMessage,
   PermissionAccessState,
+  ThreatAlertItem,
 } from '../types/security';
 import {
   INITIAL_SCAN_HISTORY,
   INITIAL_ACTIVITY_TIMELINE,
   INITIAL_PRIVACY_PERMISSIONS,
 } from '../data/mockSecurityData';
+import { SecurityGatewayService } from '../services/api';
 import { CyberSecurityService } from '../services/cyberService';
 
 export interface SecurityState {
@@ -31,13 +33,18 @@ export interface SecurityState {
   updateProfile: (fullName: string, email: string) => void;
 
   // Holistic Security Score & Breakdown
-  readonly score: number;
+  readonly isCalculated: boolean;
+  readonly score: number | null;
   readonly unverifiedPermissionsCount: number;
   readonly summaryMessage: string;
-  readonly securityScore: HolisticSecurityScore;
+  readonly securityScore: HolisticSecurityScore | null;
   setScore: (newScore: number, customSummary?: string) => void;
   setSecurityScore: (score: HolisticSecurityScore) => void;
+  calculateLiveScore: () => Promise<void>;
   improveSecurityAutomatically: () => void;
+
+  // Dynamic Alerts & Threats
+  readonly threatAlerts: readonly ThreatAlertItem[];
 
   // Scanners, History & Activity
   readonly lastWifiAssessment: WifiRiskAssessment | null;
@@ -54,9 +61,7 @@ export interface SecurityState {
 
   // Privacy Permissions
   readonly privacyPermissions: readonly PrivacyPermissionCategory[];
-  cyclePrivacyPermission: (
-    id: PrivacyPermissionCategory['id'],
-  ) => void;
+  cyclePrivacyPermission: (id: PrivacyPermissionCategory['id']) => void;
   reviewAndTightenPrivacy: () => void;
 
   // Learning & Quiz
@@ -102,31 +107,31 @@ const mapScoreToSeverity = (score: number): RiskSeverity => {
 };
 
 const INITIAL_USER: UserProfile = {
-  id: 'usr-01',
-  fullName: 'Anurag Sharma',
-  email: 'anurag@cybercompanion.app',
-  avatarInitials: 'AS',
-  memberSince: 'September 2026',
-  completedLessons: ['phishing', 'public-wifi'],
-  quizHighScore: 80,
+  id: 'usr-local',
+  fullName: 'Cyber User',
+  email: '',
+  avatarInitials: 'CU',
+  memberSince: 'October 2026',
+  completedLessons: [],
+  quizHighScore: 0,
   achievements: [
     {
       id: 'ach-1',
       title: 'First Link Checked',
       description: 'Verified a website address before opening it.',
-      unlocked: true,
+      unlocked: false,
     },
     {
       id: 'ach-2',
       title: 'Wi-Fi Guardian',
       description: 'Checked your Wi-Fi network security.',
-      unlocked: true,
+      unlocked: false,
     },
     {
       id: 'ach-3',
       title: 'Privacy Defender',
       description: 'Reviewed app permissions in the Privacy Center.',
-      unlocked: true,
+      unlocked: false,
     },
     {
       id: 'ach-4',
@@ -137,38 +142,95 @@ const INITIAL_USER: UserProfile = {
   ],
 };
 
-const INITIAL_SECURITY_SCORE: HolisticSecurityScore = {
-  overallScore: 84,
-  wifiSafetyScore: 75,
-  urlHygieneScore: 90,
-  appPermissionScore: 80,
-  breakdown: {
-    permissions: 85,
-    device: 90,
-    network: 75,
-    privacy: 80,
-    awareness: 80,
-  },
-  severity: 'LOW',
-  updatedAt: new Date().toISOString(),
-};
-
 const INITIAL_ASSISTANT_MESSAGES: readonly CyberAssistantMessage[] = [
   {
     id: 'msg-welcome',
     sender: 'assistant',
-    text: "Hi! I'm your Cyber Assistant. How can I help you today?",
+    text: "Hi! I'm your Cyber Assistant. How can I help you stay safe today?",
     timestamp: 'Just now',
   },
 ];
 
-export const useSecurityStore = create<SecurityState>((set) => ({
+/**
+ * Computes live threat alerts strictly from actual runtime security events:
+ * 1. Detected unencrypted / rogue Wi-Fi
+ * 2. Flagged malicious / phishing URLs
+ * 3. Dangerous permission combinations on device
+ */
+function deriveThreatAlerts(
+  lastWifiAssessment: WifiRiskAssessment | null,
+  recentUrlScans: readonly UrlScanResult[],
+  privacyPermissions: readonly PrivacyPermissionCategory[],
+): ThreatAlertItem[] {
+  const alerts: ThreatAlertItem[] = [];
+
+  // 1. Wi-Fi Risks
+  if (lastWifiAssessment && !lastWifiAssessment.isSafe) {
+    alerts.push({
+      id: `wifi-alert-${lastWifiAssessment.ssid}`,
+      title: `Unsecured Wi-Fi: "${lastWifiAssessment.ssid}"`,
+      severity: lastWifiAssessment.severity === 'CRITICAL' ? 'Critical' : 'Medium',
+      date: 'Active Now',
+      summary: lastWifiAssessment.insight.summary,
+      affectedArea: 'Network Security',
+      explanation: lastWifiAssessment.explanation,
+    });
+  }
+
+  // 2. Dangerous URLs
+  for (const scan of recentUrlScans) {
+    if (!scan.isSafe) {
+      alerts.push({
+        id: `url-alert-${scan.targetUrl}`,
+        title: `Flagged Malicious Link (${scan.normalizedDomain})`,
+        severity: scan.severity === 'CRITICAL' ? 'Critical' : 'High',
+        date: 'Recent Scan',
+        summary: scan.insight.summary,
+        affectedArea: 'URL & Web Safety',
+        explanation: scan.explanation,
+      });
+    }
+  }
+
+  // 3. High Risk Permission Combination (SMS + Location)
+  const smsAllowed = privacyPermissions.find((p) => p.id === 'sms')?.status === 'Allowed';
+  const locationAllowed = privacyPermissions.find((p) => p.id === 'location')?.status === 'Allowed';
+  if (smsAllowed && locationAllowed) {
+    alerts.push({
+      id: 'perm-alert-sms-location',
+      title: 'High-Risk Permission Combination Detected',
+      severity: 'Critical',
+      date: 'Device Inspection',
+      summary: 'Both SMS (OTPs) and Physical Location access are currently granted.',
+      affectedArea: 'Device Privacy',
+      explanation: {
+        whatHappened: 'Apps on your device have simultaneous access to your SMS messages and precise GPS location.',
+        whyItMatters: 'Malicious apps can intercept two-factor bank codes while tracking your physical whereabouts.',
+        whatShouldIDo: [
+          'Open Permission Analyzer in Cyber Companion.',
+          'Restrict SMS or background location to trusted apps only.',
+        ],
+        technicalDetails: {
+          summary: 'Simultaneous android.permission.READ_SMS and ACCESS_FINE_LOCATION active.',
+          facts: [
+            { label: 'Risk Factor', value: 'Credential & Physical Tracking' },
+            { label: 'Recommended Action', value: 'Revoke SMS permission in phone settings' },
+          ],
+        },
+      },
+    });
+  }
+
+  return alerts;
+}
+
+export const useSecurityStore = create<SecurityState>((set, get) => ({
   isAuthenticated: true,
-  pendingVerificationEmail: 'anurag@cybercompanion.app',
+  pendingVerificationEmail: '',
   user: INITIAL_USER,
 
   signIn: (email, nameOverride) => {
-    const cleanEmail = email.trim() || 'anurag@cybercompanion.app';
+    const cleanEmail = email.trim();
     const derivedName =
       nameOverride?.trim() ||
       (cleanEmail.includes('@')
@@ -176,7 +238,7 @@ export const useSecurityStore = create<SecurityState>((set) => ({
             .split('@')[0]
             .replace(/[._-]/g, ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase())
-        : 'Anurag Sharma');
+        : 'User');
     const initials = derivedName
       .split(' ')
       .map((p) => p[0])
@@ -190,14 +252,14 @@ export const useSecurityStore = create<SecurityState>((set) => ({
         ...state.user,
         fullName: derivedName,
         email: cleanEmail,
-        avatarInitials: initials || 'CC',
+        avatarInitials: initials || 'CU',
       },
     }));
   },
 
   signUp: (fullName, email) => {
-    const cleanName = fullName.trim() || 'Anurag Sharma';
-    const cleanEmail = email.trim() || 'anurag@cybercompanion.app';
+    const cleanName = fullName.trim() || 'User';
+    const cleanEmail = email.trim();
     const initials = cleanName
       .split(' ')
       .map((p) => p[0])
@@ -211,7 +273,7 @@ export const useSecurityStore = create<SecurityState>((set) => ({
         ...state.user,
         fullName: cleanName,
         email: cleanEmail,
-        avatarInitials: initials || 'CC',
+        avatarInitials: initials || 'CU',
       },
     }));
   },
@@ -229,14 +291,18 @@ export const useSecurityStore = create<SecurityState>((set) => ({
       },
     })),
 
-  score: INITIAL_SECURITY_SCORE.overallScore,
-  unverifiedPermissionsCount: 2,
-  summaryMessage: 'Weak password & public Wi-Fi settings',
-  securityScore: INITIAL_SECURITY_SCORE,
+  // Initial score is uncalculated until real checks occur
+  isCalculated: false,
+  score: null,
+  unverifiedPermissionsCount: 0,
+  summaryMessage: 'Security score unavailable. Complete a security check to build your score.',
+  securityScore: null,
 
   setScore: (rawScore, customSummary) => {
     const normalized = Math.max(0, Math.min(100, Math.round(rawScore)));
+    const severity = mapScoreToSeverity(normalized);
     set((state) => ({
+      isCalculated: true,
       score: normalized,
       summaryMessage:
         customSummary ??
@@ -245,46 +311,145 @@ export const useSecurityStore = create<SecurityState>((set) => ({
           : normalized >= 50
             ? 'A few privacy and network settings need attention.'
             : 'Important security items need your attention.'),
-      securityScore: {
-        ...state.securityScore,
-        overallScore: normalized,
-        severity: mapScoreToSeverity(normalized),
-        updatedAt: new Date().toISOString(),
-      },
+      securityScore: state.securityScore
+        ? {
+            ...state.securityScore,
+            overallScore: normalized,
+            severity,
+            updatedAt: new Date().toISOString(),
+          }
+        : {
+            overallScore: normalized,
+            wifiSafetyScore: 80,
+            urlHygieneScore: 90,
+            appPermissionScore: 85,
+            breakdown: {
+              permissions: 85,
+              device: 90,
+              network: 80,
+              privacy: 85,
+              awareness: 80,
+            },
+            severity,
+            updatedAt: new Date().toISOString(),
+          },
     }));
   },
 
   setSecurityScore: (securityScore) =>
     set({
+      isCalculated: true,
       score: securityScore.overallScore,
       securityScore,
     }),
 
-  improveSecurityAutomatically: () =>
-    set((state) => ({
-      score: 94,
-      unverifiedPermissionsCount: 0,
-      summaryMessage: 'All device, network, and privacy checks look good.',
-      securityScore: {
-        ...state.securityScore,
-        overallScore: 94,
-        appPermissionScore: 95,
-        breakdown: {
-          permissions: 95,
-          device: 96,
-          network: 94,
-          privacy: 95,
-          awareness: 93,
+  calculateLiveScore: async () => {
+    const state = get();
+    try {
+      const telemetry = {
+        wifi: state.lastWifiAssessment
+          ? {
+              securityType: state.lastWifiAssessment.encryption,
+              isCaptivePortal: false,
+            }
+          : undefined,
+        device: {
+          isScreenLockEnabled: true,
+          isOsUpToDate: true,
+          isRooted: false,
         },
-        severity: 'LOW',
-        updatedAt: new Date().toISOString(),
-      },
-      privacyPermissions: state.privacyPermissions.map((p) =>
-        p.id === 'microphone' || p.id === 'contacts'
-          ? { ...p, status: 'Limited', flaggedApps: [], plainDescription: 'Restricted to trusted use only.' }
+        permissions: {
+          unnecessaryHighRiskCount: state.unverifiedPermissionsCount,
+        },
+        passwords: {
+          twoFactorEnabled: state.twoFactorEnabled,
+        },
+        threats: {
+          maliciousCount: state.recentUrlScans.filter((u) => !u.isSafe).length,
+          quizPassed: state.quizHighScore >= 80,
+        },
+      };
+
+      const result = await SecurityGatewayService.calculateScore(telemetry);
+      set({
+        isCalculated: true,
+        score: result.overallScore,
+        securityScore: result,
+        summaryMessage:
+          result.overallScore >= 80
+            ? 'Your digital safety is in good shape.'
+            : result.overallScore >= 50
+              ? 'A few privacy and network settings need attention.'
+              : 'Important security items need your attention.',
+      });
+    } catch {
+      // Local calculation fallback if backend is unreachable
+      const permDeduction = state.unverifiedPermissionsCount * 8;
+      const networkDeduction = state.lastWifiAssessment?.isSafe === false ? 20 : 0;
+      const urlDeduction = state.recentUrlScans.some((u) => !u.isSafe) ? 15 : 0;
+      const computed = Math.max(0, Math.min(100, 100 - (permDeduction + networkDeduction + urlDeduction)));
+      const severity = mapScoreToSeverity(computed);
+
+      set({
+        isCalculated: true,
+        score: computed,
+        summaryMessage:
+          computed >= 80
+            ? 'Your digital safety is in good shape.'
+            : 'A few privacy and network settings need attention.',
+        securityScore: {
+          overallScore: computed,
+          wifiSafetyScore: Math.max(40, 100 - networkDeduction),
+          urlHygieneScore: Math.max(50, 100 - urlDeduction),
+          appPermissionScore: Math.max(50, 100 - permDeduction),
+          breakdown: {
+            permissions: Math.max(50, 100 - permDeduction),
+            device: 90,
+            network: Math.max(40, 100 - networkDeduction),
+            privacy: Math.max(50, 100 - permDeduction),
+            awareness: 80,
+          },
+          severity,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    }
+  },
+
+  improveSecurityAutomatically: () =>
+    set((state) => {
+      const updatedPerms = state.privacyPermissions.map((p) =>
+        p.id === 'microphone' || p.id === 'contacts' || p.id === 'sms'
+          ? { ...p, status: 'Limited' as const, flaggedApps: [], plainDescription: 'Restricted to trusted use only.' }
           : p,
-      ),
-    })),
+      );
+      const newScore = 95;
+      return {
+        isCalculated: true,
+        score: newScore,
+        unverifiedPermissionsCount: 0,
+        summaryMessage: 'All device, network, and privacy checks look good.',
+        securityScore: {
+          overallScore: newScore,
+          wifiSafetyScore: 95,
+          urlHygieneScore: 95,
+          appPermissionScore: 95,
+          breakdown: {
+            permissions: 95,
+            device: 96,
+            network: 94,
+            privacy: 95,
+            awareness: 93,
+          },
+          severity: 'LOW',
+          updatedAt: new Date().toISOString(),
+        },
+        privacyPermissions: updatedPerms,
+        threatAlerts: deriveThreatAlerts(state.lastWifiAssessment, state.recentUrlScans, updatedPerms),
+      };
+    }),
+
+  threatAlerts: [],
 
   lastWifiAssessment: null,
   recentUrlScans: [],
@@ -292,12 +457,40 @@ export const useSecurityStore = create<SecurityState>((set) => ({
   scanHistory: INITIAL_SCAN_HISTORY,
   activityTimeline: INITIAL_ACTIVITY_TIMELINE,
 
-  setWifiAssessment: (lastWifiAssessment) => set({ lastWifiAssessment }),
+  setWifiAssessment: (lastWifiAssessment) =>
+    set((state) => {
+      const updatedAchievements = state.user.achievements.map((ach) =>
+        ach.id === 'ach-2' ? { ...ach, unlocked: true } : ach,
+      );
+      const alerts = deriveThreatAlerts(
+        lastWifiAssessment,
+        state.recentUrlScans,
+        state.privacyPermissions,
+      );
+      return {
+        lastWifiAssessment,
+        threatAlerts: alerts,
+        user: { ...state.user, achievements: updatedAchievements },
+      };
+    }),
 
   addUrlScanResult: (result) =>
-    set((state) => ({
-      recentUrlScans: [result, ...state.recentUrlScans].slice(0, 25),
-    })),
+    set((state) => {
+      const updatedUrlScans = [result, ...state.recentUrlScans].slice(0, 25);
+      const updatedAchievements = state.user.achievements.map((ach) =>
+        ach.id === 'ach-1' ? { ...ach, unlocked: true } : ach,
+      );
+      const alerts = deriveThreatAlerts(
+        state.lastWifiAssessment,
+        updatedUrlScans,
+        state.privacyPermissions,
+      );
+      return {
+        recentUrlScans: updatedUrlScans,
+        threatAlerts: alerts,
+        user: { ...state.user, achievements: updatedAchievements },
+      };
+    }),
 
   addScanHistoryItem: (item) =>
     set((state) => {
@@ -305,7 +498,7 @@ export const useSecurityStore = create<SecurityState>((set) => ({
         ...item,
         id: `scan-${Date.now()}`,
         date: 'Today',
-        time: 'Just now',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       const newActivity: ActivityTimelineEntry = {
         id: `act-${Date.now()}`,
@@ -345,70 +538,52 @@ export const useSecurityStore = create<SecurityState>((set) => ({
         Denied: 'Allowed',
       };
       const updated = state.privacyPermissions.map((perm) =>
-        perm.id === id
-          ? {
-              ...perm,
-              status: nextOrder[perm.status],
-              flaggedApps:
-                nextOrder[perm.status] === 'Allowed'
-                  ? (perm.id === 'microphone' ? ['Flashlight Ultra LED'] : perm.id === 'contacts' ? ['Quick PDF Scanner'] : [])
-                  : [],
-            }
-          : perm,
+        perm.id === id ? { ...perm, status: nextOrder[perm.status] } : perm,
       );
+      const allowedHighRisk = updated.filter(
+        (p) => p.status === 'Allowed' && (p.id === 'sms' || p.id === 'microphone' || p.id === 'location'),
+      ).length;
 
-      // Dynamic weighted formula: Score = 100 - (NetworkDeductions + PermissionDeductions + URLRiskDeductions)
-      const allowedFlagged = updated.filter((p) => p.status === 'Allowed' && p.flaggedApps.length > 0).length;
-      const permDeduction = allowedFlagged * 8;
-      const networkDeduction = state.lastWifiAssessment?.isSafe === false ? 20 : 0;
-      const urlDeduction = state.recentUrlScans.some((u) => u.status === 'DANGER') ? 15 : 0;
-      const computedScore = Math.max(0, Math.min(100, 100 - (permDeduction + networkDeduction + urlDeduction)));
+      const alerts = deriveThreatAlerts(
+        state.lastWifiAssessment,
+        state.recentUrlScans,
+        updated,
+      );
 
       return {
         privacyPermissions: updated,
-        unverifiedPermissionsCount: allowedFlagged,
-        score: computedScore,
-        securityScore: {
-          ...state.securityScore,
-          overallScore: computedScore,
-          breakdown: {
-            ...state.securityScore.breakdown,
-            privacy: Math.max(50, 100 - permDeduction * 3),
-          },
-        },
+        unverifiedPermissionsCount: allowedHighRisk,
+        threatAlerts: alerts,
       };
     }),
 
   reviewAndTightenPrivacy: () =>
     set((state) => {
       const updated = state.privacyPermissions.map((perm) =>
-        perm.flaggedApps.length > 0
+        perm.status === 'Allowed' && (perm.id === 'sms' || perm.id === 'microphone')
           ? {
               ...perm,
               status: 'Limited' as const,
-              flaggedApps: [],
-              plainDescription: 'Reviewed and limited to active use only.',
+              plainDescription: 'Reviewed and limited to user-approved actions.',
             }
           : perm,
       );
-      const networkDeduction = state.lastWifiAssessment?.isSafe === false ? 20 : 0;
-      const urlDeduction = state.recentUrlScans.some((u) => u.status === 'DANGER') ? 15 : 0;
-      const computedScore = Math.max(0, Math.min(100, 100 - (networkDeduction + urlDeduction)));
+
+      const updatedAchievements = state.user.achievements.map((ach) =>
+        ach.id === 'ach-3' ? { ...ach, unlocked: true } : ach,
+      );
+
+      const alerts = deriveThreatAlerts(
+        state.lastWifiAssessment,
+        state.recentUrlScans,
+        updated,
+      );
 
       return {
         unverifiedPermissionsCount: 0,
-        score: computedScore,
-        summaryMessage: 'All sensitive permissions have been reviewed and tightened.',
-        securityScore: {
-          ...state.securityScore,
-          overallScore: computedScore,
-          appPermissionScore: 95,
-          breakdown: {
-            ...state.securityScore.breakdown,
-            privacy: 95,
-          },
-        },
         privacyPermissions: updated,
+        threatAlerts: alerts,
+        user: { ...state.user, achievements: updatedAchievements },
       };
     }),
 
@@ -421,20 +596,20 @@ export const useSecurityStore = create<SecurityState>((set) => ({
       const nextLessons = [...state.completedLessons, topicId];
       return {
         completedLessons: nextLessons,
-        securityScore: {
-          ...state.securityScore,
-          breakdown: {
-            ...state.securityScore.breakdown,
-            awareness: Math.min(100, state.securityScore.breakdown.awareness + 4),
-          },
-        },
       };
     }),
 
   saveQuizScore: (quizScore) =>
-    set((state) => ({
-      quizHighScore: Math.max(state.quizHighScore, quizScore),
-    })),
+    set((state) => {
+      const newHigh = Math.max(state.quizHighScore, quizScore);
+      const updatedAchievements = state.user.achievements.map((ach) =>
+        ach.id === 'ach-4' && quizScore >= 100 ? { ...ach, unlocked: true } : ach,
+      );
+      return {
+        quizHighScore: newHigh,
+        user: { ...state.user, achievements: updatedAchievements },
+      };
+    }),
 
   assistantMessages: INITIAL_ASSISTANT_MESSAGES,
 

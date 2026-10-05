@@ -277,4 +277,6 @@ export type RootStackParamList = {
   CyberAssistant: { initialPrompt?: string } | undefined; // /assistant
   Profile: undefined; // /profile
   Settings: undefined; // /settings
+  Reports: undefined; // /reports
+  ThreatIntelligence: undefined; // /threat-intel
 };

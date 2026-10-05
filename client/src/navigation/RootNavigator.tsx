@@ -58,6 +58,7 @@ import {
   ProfileScreen,
   SettingsScreen,
 } from '../screens/AssistantAndAccountScreens';
+import { ReportsScreen } from '../screens/ReportsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -71,40 +72,34 @@ interface SidebarGroup {
 
 const WEB_SIDEBAR_GROUPS: readonly SidebarGroup[] = [
   {
-    group: 'HOME',
+    group: 'DASHBOARD',
     items: [{ label: 'Dashboard', route: 'Dashboard' }],
   },
   {
-    group: 'SCAN',
+    group: 'SCANNERS',
     items: [
+      { label: 'Wi-Fi Analyzer', route: 'WifiAnalyzer' },
       { label: 'URL Scanner', route: 'UrlScanner' },
       { label: 'QR Scanner', route: 'QrScanner' },
-      { label: 'Wi-Fi Scanner', route: 'WifiAnalyzer' },
-      { label: 'Scan History', route: 'ScanHistory' },
+      { label: 'Permission Analyzer', route: 'PermissionAnalyzer' },
     ],
   },
   {
-    group: 'SECURITY',
+    group: 'SECURITY ENGINE',
     items: [
-      { label: 'Security Center', route: 'SecurityCenter' },
-      { label: 'Password Security', route: 'PasswordSecurity' },
-      { label: 'Device Security', route: 'DeviceSecurity' },
-      { label: 'Network Security', route: 'NetworkSecurity' },
-      { label: 'Privacy', route: 'PermissionAnalyzer' },
+      { label: 'Security Score', route: 'SecurityCenter' },
+      { label: 'Threat Intelligence', route: 'ThreatAlerts' },
+      { label: 'Alerts & History', route: 'ScanHistory' },
+      { label: 'Advanced Security', route: 'DeviceSecurity' },
     ],
   },
   {
-    group: 'LEARN',
+    group: 'LEARNING & REPORTS',
     items: [
-      { label: 'Awareness', route: 'AwarenessCenter' },
-      { label: 'Threat Alerts', route: 'ThreatAlerts' },
-      { label: 'Security News', route: 'SecurityNews' },
-      { label: 'Quiz', route: 'SecurityQuiz' },
+      { label: 'Cyber Awareness', route: 'AwarenessCenter' },
+      { label: 'Reports', route: 'Reports' },
+      { label: 'Cyber AI', route: 'CyberAssistant' },
     ],
-  },
-  {
-    group: 'ASSISTANT',
-    items: [{ label: 'Cyber AI', route: 'CyberAssistant' }],
   },
   {
     group: 'ACCOUNT',
@@ -116,14 +111,14 @@ const WEB_SIDEBAR_GROUPS: readonly SidebarGroup[] = [
 ];
 
 const ANDROID_BOTTOM_TABS: readonly {
-  readonly label: 'Home' | 'Scan' | 'Security' | 'Learn' | 'Profile';
+  readonly label: 'Home' | 'Scan' | 'Alerts' | 'Learn' | 'Settings';
   readonly route: keyof RootStackParamList;
 }[] = [
   { label: 'Home', route: 'Dashboard' },
   { label: 'Scan', route: 'ScanHub' },
-  { label: 'Security', route: 'SecurityCenter' },
+  { label: 'Alerts', route: 'ThreatAlerts' },
   { label: 'Learn', route: 'AwarenessCenter' },
-  { label: 'Profile', route: 'Profile' },
+  { label: 'Settings', route: 'Settings' },
 ];
 
 export const RootNavigator: React.FC = () => {
@@ -400,6 +395,11 @@ export const RootNavigator: React.FC = () => {
                 name="Settings"
                 component={SettingsScreen}
                 options={{ title: 'Settings' }}
+              />
+              <Stack.Screen
+                name="Reports"
+                component={ReportsScreen}
+                options={{ title: 'Security Reports' }}
               />
             </Stack.Navigator>
           </View>

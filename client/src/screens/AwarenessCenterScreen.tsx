@@ -74,7 +74,11 @@ export const AwarenessCenterScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Learning Progress</Text>
         <AppProgressBar
-          label={`${completedLessons.length} of ${totalTopics} lessons completed`}
+          label={
+            completedLessons.length === 0
+              ? 'Start your first lesson.'
+              : `${completedLessons.length} of ${totalTopics} lessons completed`
+          }
           value={progressPercent}
         />
 

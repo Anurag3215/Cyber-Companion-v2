@@ -140,8 +140,8 @@ export const ScanHistoryScreen: React.FC<HistoryProps> = ({
 
       {filtered.length === 0 ? (
         <EmptyStateView
-          title="You haven't scanned anything yet."
-          message="Check a website link, QR code, or Wi-Fi network to see your history here."
+          title="No security activity yet."
+          message="Check a website link, QR code, or Wi-Fi network to build your security history."
           actionLabel="Check a Website"
           onAction={() => navigation.navigate('UrlScanner')}
         />

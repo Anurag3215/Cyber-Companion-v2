@@ -61,6 +61,8 @@ app.get('/health', (_req, res) => {
 // 5. Threat Intelligence & Wi-Fi Risk API Routes
 app.use('/api/v1', threatRoutes);
 app.use('/api/v1', wifiRoutes);
+app.use('/api', threatRoutes);
+app.use('/api', wifiRoutes);
 
 // 6. 404 Fallback Handler
 app.use((req, res) => {

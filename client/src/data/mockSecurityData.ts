@@ -208,103 +208,7 @@ export const LEARNING_TOPICS: readonly LearningTopic[] = [
   },
 ];
 
-export const THREAT_ALERTS: readonly ThreatAlertItem[] = [
-  {
-    id: 'alert-01',
-    title: 'Fake Package Delivery SMS Links Active in Your Region',
-    severity: 'Critical',
-    date: 'Today, 09:15 AM',
-    summary: 'Scammers are sending text messages claiming a parcel needs an address update.',
-    affectedArea: 'SMS & Messaging Links',
-    explanation: {
-      whatHappened:
-        'A wave of fraudulent text messages pretending to be postal and courier services is circulating today.',
-      whyItMatters:
-        'The link leads to a realistic fake page designed to steal credit card numbers under the excuse of a $1.99 redelivery fee.',
-      whatShouldIDo: [
-        'Delete any text message asking for a small fee to deliver a package.',
-        'Paste any tracking link into Cyber Companion’s URL Scanner before opening it.',
-      ],
-      technicalDetails: {
-        summary: 'Multiple newly registered lookalike domains (.top, .xyz) flagged by Google Safe Browsing and URLScan.io.',
-        facts: [
-          { label: 'Threat Type', value: 'SMS Phishing (Smishing)' },
-          { label: 'Domain Age', value: 'Less than 48 hours old' },
-          { label: 'Detection Engines', value: 'VirusTotal & Safe Browsing' },
-        ],
-      },
-    },
-  },
-  {
-    id: 'alert-02',
-    title: '2 Installed Apps Have Unused Microphone & Contact Access',
-    severity: 'High',
-    date: 'Yesterday, 06:40 PM',
-    summary: 'Utility apps on your device can access permissions they do not need.',
-    affectedArea: 'Device Privacy',
-    explanation: {
-      whatHappened:
-        'Two utility apps (Flashlight Ultra LED and Quick PDF Scanner) currently hold permissions to access your Microphone and Contacts.',
-      whyItMatters:
-        'Simple utility apps do not need your contacts or microphone to work. Keeping those permissions open increases privacy risk.',
-      whatShouldIDo: [
-        'Open Privacy Center in Cyber Companion.',
-        'Change Microphone and Contacts access for those apps to "Denied".',
-      ],
-      technicalDetails: {
-        summary: 'Android Package Manager manifest inspection flagged android.permission.RECORD_AUDIO and READ_CONTACTS.',
-        facts: [
-          { label: 'Flagged Packages', value: '2 installed applications' },
-          { label: 'Permissions', value: 'RECORD_AUDIO, READ_CONTACTS' },
-        ],
-      },
-    },
-  },
-  {
-    id: 'alert-03',
-    title: 'Public Cafe Wi-Fi Was Connected Without Encryption',
-    severity: 'Medium',
-    date: 'Sep 28, 2026',
-    summary: 'You recently joined an open hotspot ("CoffeeHouse_Free") with no password.',
-    affectedArea: 'Network Security',
-    explanation: {
-      whatHappened:
-        'Your device connected to an open public Wi-Fi network that does not encrypt wireless traffic.',
-      whyItMatters:
-        'Other people on the same open Wi-Fi network could potentially observe unencrypted web activity.',
-      whatShouldIDo: [
-        'Forget open networks you no longer use.',
-        'Use mobile data when signing into banking or personal email away from home.',
-      ],
-    },
-  },
-  {
-    id: 'alert-04',
-    title: 'Monthly Password Hygiene Reminder',
-    severity: 'Low',
-    date: 'Sep 25, 2026',
-    summary: 'It has been 90 days since you last reviewed your main email security settings.',
-    affectedArea: 'Password Security',
-    explanation: {
-      whatHappened: 'Routine 90-day security check-in for your primary accounts.',
-      whyItMatters: 'Keeping Two-Factor Authentication active on your email protects all linked accounts.',
-      whatShouldIDo: ['Verify that 2FA is enabled on your primary email account.'],
-    },
-  },
-  {
-    id: 'alert-05',
-    title: 'Suspicious QR Redirect Blocked',
-    severity: 'Resolved',
-    date: 'Sep 22, 2026',
-    summary: 'Cyber Companion stopped a shortened QR link from opening automatically.',
-    affectedArea: 'QR Scanner',
-    explanation: {
-      whatHappened: 'A scanned QR code pointed to an untrusted redirect link and was safely cancelled.',
-      whyItMatters: 'Stopping the redirect prevented your browser from visiting a deceptive giveaway page.',
-      whatShouldIDo: ['No further action needed—this threat was resolved safely.'],
-    },
-  },
-];
+export const THREAT_ALERTS: readonly ThreatAlertItem[] = [];
 
 export const SECURITY_NEWS: readonly SecurityNewsItem[] = [
   {
@@ -406,17 +310,7 @@ export const QUIZ_QUESTIONS: readonly QuizQuestion[] = [
 
 export const INITIAL_SCAN_HISTORY: readonly ScanHistoryEntry[] = [];
 
-export const INITIAL_ACTIVITY_TIMELINE: readonly ActivityTimelineEntry[] = [
-  {
-    id: 'act-init',
-    title: 'Cyber Companion Protection Active',
-    subtitle: 'Real-time link, Wi-Fi, and permission monitors running',
-    status: 'SAFE',
-    statusLabel: 'Safe',
-    timestamp: 'Just now',
-    routeTarget: 'Dashboard',
-  },
-];
+export const INITIAL_ACTIVITY_TIMELINE: readonly ActivityTimelineEntry[] = [];
 
 export const INITIAL_PRIVACY_PERMISSIONS: readonly PrivacyPermissionCategory[] = [
   {

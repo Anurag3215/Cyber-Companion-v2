@@ -34,4 +34,7 @@ router.post(
   threatController.calculateScore
 );
 
+router.post('/score', threatController.calculateScore);
+router.get('/score', (req, res, next) => threatController.calculateScore({ body: {} }, res, next));
+
 module.exports = router;
