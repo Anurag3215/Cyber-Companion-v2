@@ -48,7 +48,8 @@ export interface UserProfile {
 }
 
 export interface SecurityScoreBreakdown {
-  readonly password: number;
+  readonly permissions: number;
+  readonly password?: number;
   readonly device: number;
   readonly network: number;
   readonly privacy: number;

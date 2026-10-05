@@ -50,6 +50,14 @@ export const ScanHubScreen: React.FC<ScanHubProps> = ({ navigation }) => {
       />
 
       <StatusCard
+        title="Permission Analyzer"
+        subtitle="Audit camera, microphone, location, SMS, and contacts permissions"
+        status="SAFE"
+        statusLabel="Audit →"
+        onPress={() => navigation.navigate('PermissionAnalyzer')}
+      />
+
+      <StatusCard
         title="Scan History"
         subtitle="Review or clear your past website, QR, and Wi-Fi checks"
         status="SAFE"

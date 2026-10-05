@@ -95,8 +95,8 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ navigation }) => {
             <Text style={styles.breakdownHeading}>Security Breakdown</Text>
             <View style={styles.breakdownList}>
               <AppProgressBar
-                label="Password"
-                value={securityScore.breakdown.password}
+                label="Permissions"
+                value={securityScore.breakdown.permissions ?? 85}
               />
               <AppProgressBar
                 label="Device"
@@ -123,7 +123,7 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ navigation }) => {
             ⚠️ 2 items need your attention
           </Text>
           <Text style={styles.attentionBannerSubtitle}>
-            Weak password & public Wi-Fi settings
+            App permissions & network encryption
           </Text>
           <AppButton
             label="Improve Security"
@@ -170,10 +170,10 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ navigation }) => {
           </View>
           <View style={{ width: quickCardWidth }}>
             <QuickActionCard
-              title="Check Password"
-              subtitle="Test & create strong passwords"
+              title="Permission Analyzer"
+              subtitle="Audit sensitive app access & risks"
               icon={<LockSlidersIcon size={22} color={SecurityPalette.warning} />}
-              onPress={() => navigation.navigate('PasswordSecurity')}
+              onPress={() => navigation.navigate('PermissionAnalyzer')}
             />
           </View>
         </View>

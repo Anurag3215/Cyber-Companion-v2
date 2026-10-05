@@ -32,11 +32,11 @@ export const SecurityCenterScreen: React.FC<CenterProps> = ({ navigation }) => {
       </Text>
 
       <StatusCard
-        title="Password Security"
-        subtitle="Test password strength and generate strong, memorable passwords"
-        status="SAFE"
-        statusLabel="Open →"
-        onPress={() => navigation.navigate('PasswordSecurity')}
+        title="Permission Analyzer"
+        subtitle="Audit camera, microphone, location, SMS, and contacts permissions"
+        status={unverifiedCount > 0 ? 'ATTENTION' : 'SAFE'}
+        statusLabel={unverifiedCount > 0 ? '⚠ Needs attention' : 'Open →'}
+        onPress={() => navigation.navigate('PermissionAnalyzer')}
       />
 
       <StatusCard
@@ -56,10 +56,10 @@ export const SecurityCenterScreen: React.FC<CenterProps> = ({ navigation }) => {
       />
 
       <StatusCard
-        title="Privacy"
-        subtitle="Manage Camera, Microphone, Location, Contacts, and Storage access"
-        status={unverifiedCount > 0 ? 'ATTENTION' : 'SAFE'}
-        statusLabel={unverifiedCount > 0 ? '⚠ Needs attention' : '✓ Good'}
+        title="Privacy & Storage"
+        subtitle="Manage background access and sensitive Android storage settings"
+        status="SAFE"
+        statusLabel="✓ Good"
         onPress={() => navigation.navigate('PermissionAnalyzer')}
       />
     </ScrollView>

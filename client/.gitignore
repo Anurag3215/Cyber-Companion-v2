@@ -67,9 +67,7 @@ yarn-error.log
 /coverage
 
 # Yarn
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
+# Bundle artifact
+android/app/src/main/assets/
+android/app/src/main/res/drawable-*/
+android/app/src/main/res/raw/

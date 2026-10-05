@@ -6,6 +6,7 @@ import { RootStackParamList, UrlScanResult } from '../types/security';
 import { SecurityPalette, Spacing, Radius } from '../theme/theme';
 import {
   AppButton,
+  AppInput,
   ScanResultCard,
   LoadingStateView,
   ConfirmModal,
@@ -27,6 +28,7 @@ export const QrScannerScreen: React.FC<Props> = () => {
   const [interceptedUrl, setInterceptedUrl] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<UrlScanResult | null>(null);
   const [confirmOpenVisible, setConfirmOpenVisible] = useState(false);
+  const [manualInput, setManualInput] = useState('');
 
   // ZERO AUTO-EXECUTION: Every barcode capture pauses and holds the payload in quarantine
   const handleBarcodeCaptured = async (rawCode: string) => {
@@ -97,30 +99,23 @@ export const QrScannerScreen: React.FC<Props> = () => {
           </Text>
         </View>
 
-        {/* Quick Test Vectors to simulate camera detections */}
+        {/* Live QR Payload Quarantine Input */}
         <View style={styles.actionButtonsStack}>
+          <AppInput
+            label="QR Code Payload or Web Link"
+            placeholder="Paste or enter decoded QR text..."
+            value={manualInput}
+            onChangeText={setManualInput}
+            type="url"
+          />
           <AppButton
-            label="Scan Clean Menu QR (Verified Safe)"
-            onPress={() =>
-              handleBarcodeCaptured('https://menu.freshbistro-official.com')
-            }
+            label="Intercept in Quarantine Sandbox"
+            onPress={() => {
+              if (manualInput.trim()) {
+                handleBarcodeCaptured(manualInput.trim());
+              }
+            }}
             variant="primary"
-            fullWidth
-          />
-          <AppButton
-            label="Scan Test Phishing QR (Simulated Threat)"
-            onPress={() =>
-              handleBarcodeCaptured('http://testsafebrowsing.appspot.com/s/phishing.html')
-            }
-            variant="secondary"
-            fullWidth
-          />
-          <AppButton
-            label="Scan Internal IP Target (SSRF Vector)"
-            onPress={() =>
-              handleBarcodeCaptured('http://192.168.1.1/admin-panel')
-            }
-            variant="secondary"
             fullWidth
           />
         </View>

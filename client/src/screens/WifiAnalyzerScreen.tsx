@@ -19,24 +19,24 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
     (state) => state.addScanHistoryItem,
   );
   const [checking, setChecking] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<'HOME' | 'PUBLIC' | 'CAPTIVE' | 'ROGUE'>('HOME');
+  const [selectedPreset, setSelectedPreset] = useState<'WPA3' | 'WPA2' | 'OPEN' | 'WEP'>('WPA3');
 
-  const getAssessment = (preset: 'HOME' | 'PUBLIC' | 'CAPTIVE' | 'ROGUE') => {
+  const getAssessment = (preset: 'WPA3' | 'WPA2' | 'OPEN' | 'WEP') => {
     switch (preset) {
-      case 'HOME':
-        return CyberSecurityService.analyzeWifi('Home_Fiber_5G', 'WPA3', false);
-      case 'PUBLIC':
-        return CyberSecurityService.analyzeWifi('Airport_Free_Guest_WiFi', 'OPEN', true);
-      case 'CAPTIVE':
-        return CyberSecurityService.analyzeWifi('Hotel_Lobby_Guest', 'OPEN', true);
-      case 'ROGUE':
-        return CyberSecurityService.analyzeWifi('Starbucks_Unverified_Hotspot', 'WEP', true);
+      case 'WPA3':
+        return CyberSecurityService.analyzeWifi('Secure_Home_Network', 'WPA3', false);
+      case 'WPA2':
+        return CyberSecurityService.analyzeWifi('Standard_Protected_WiFi', 'WPA2', false);
+      case 'OPEN':
+        return CyberSecurityService.analyzeWifi('Public_Guest_Hotspot', 'OPEN', true);
+      case 'WEP':
+        return CyberSecurityService.analyzeWifi('Legacy_Unsecured_Network', 'WEP', true);
     }
   };
 
   const assessment = getAssessment(selectedPreset);
 
-  const switchNetworkCheck = (preset: 'HOME' | 'PUBLIC' | 'CAPTIVE' | 'ROGUE') => {
+  const switchNetworkCheck = (preset: 'WPA3' | 'WPA2' | 'OPEN' | 'WEP') => {
     setChecking(true);
     setTimeout(() => {
       setSelectedPreset(preset);
@@ -60,62 +60,62 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
         everyday browsing or banking.
       </Text>
 
-      {/* Preset Toggle to inspect different Wi-Fi scenarios */}
+      {/* Protocol Toggle to inspect different Wi-Fi scenarios */}
       <View style={styles.presetSwitchRow}>
         <Pressable
-          onPress={() => switchNetworkCheck('HOME')}
+          onPress={() => switchNetworkCheck('WPA3')}
           style={[
             styles.presetTab,
-            selectedPreset === 'HOME' && styles.presetTabActive,
+            selectedPreset === 'WPA3' && styles.presetTabActive,
           ]}>
           <Text
             style={[
               styles.presetTabText,
-              selectedPreset === 'HOME' && { color: '#FFFFFF' },
+              selectedPreset === 'WPA3' && { color: '#FFFFFF' },
             ]}>
-            Home (WPA3)
+            WPA3 (Secure)
           </Text>
         </Pressable>
         <Pressable
-          onPress={() => switchNetworkCheck('PUBLIC')}
+          onPress={() => switchNetworkCheck('WPA2')}
           style={[
             styles.presetTab,
-            selectedPreset === 'PUBLIC' && styles.presetTabActive,
+            selectedPreset === 'WPA2' && styles.presetTabActive,
           ]}>
           <Text
             style={[
               styles.presetTabText,
-              selectedPreset === 'PUBLIC' && { color: '#FFFFFF' },
+              selectedPreset === 'WPA2' && { color: '#FFFFFF' },
+            ]}>
+            WPA2 (Standard)
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => switchNetworkCheck('OPEN')}
+          style={[
+            styles.presetTab,
+            selectedPreset === 'OPEN' && styles.presetTabActive,
+          ]}>
+          <Text
+            style={[
+              styles.presetTabText,
+              selectedPreset === 'OPEN' && { color: '#FFFFFF' },
             ]}>
             Public Open
           </Text>
         </Pressable>
         <Pressable
-          onPress={() => switchNetworkCheck('CAPTIVE')}
+          onPress={() => switchNetworkCheck('WEP')}
           style={[
             styles.presetTab,
-            selectedPreset === 'CAPTIVE' && styles.presetTabActive,
+            selectedPreset === 'WEP' && styles.presetTabActive,
           ]}>
           <Text
             style={[
               styles.presetTabText,
-              selectedPreset === 'CAPTIVE' && { color: '#FFFFFF' },
+              selectedPreset === 'WEP' && { color: '#FFFFFF' },
             ]}>
-            Captive Portal
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => switchNetworkCheck('ROGUE')}
-          style={[
-            styles.presetTab,
-            selectedPreset === 'ROGUE' && styles.presetTabActive,
-          ]}>
-          <Text
-            style={[
-              styles.presetTabText,
-              selectedPreset === 'ROGUE' && { color: '#FFFFFF' },
-            ]}>
-            Rogue AP
+            Legacy WEP
           </Text>
         </Pressable>
       </View>

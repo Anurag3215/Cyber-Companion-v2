@@ -111,41 +111,10 @@ export const UrlScannerScreen: React.FC<Props> = ({ route, navigation }) => {
           fullWidth
         />
 
-        {/* Quick Realistic Examples to Test All 7 States */}
-        <View style={styles.sampleSection}>
-          <Text style={styles.sampleLabel}>
-            Try a realistic example to see each result state:
+        <View style={styles.scannerHelperRow}>
+          <Text style={styles.scannerHelperText}>
+            🛡️ Inspects SSL certificate, domain registration age, and known phishing directories in real time.
           </Text>
-          <View style={styles.samplePillsRow}>
-            <Pressable
-              onPress={() => runWebsiteCheck('https://www.wikipedia.org')}
-              style={styles.samplePill}>
-              <Text style={[styles.samplePillText, { color: SecurityPalette.safe }]}>
-                ✓ Safe Website
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => runWebsiteCheck('http://bit.ly/promo-discount-link')}
-              style={styles.samplePill}>
-              <Text style={[styles.samplePillText, { color: SecurityPalette.warning }]}>
-                ⚠ Suspicious Link
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() =>
-                runWebsiteCheck('https://parcel-fee-verify-login.xyz')
-              }
-              style={styles.samplePill}>
-              <Text style={[styles.samplePillText, { color: SecurityPalette.critical }]}>
-                ● Dangerous Scam
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => runWebsiteCheck('error.test')}
-              style={styles.samplePill}>
-              <Text style={styles.samplePillText}>Scanner Error</Text>
-            </Pressable>
-          </View>
         </View>
       </View>
 
@@ -231,34 +200,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: SecurityPalette.border,
   },
-  sampleSection: {
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: SecurityPalette.border,
+  scannerHelperRow: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
   },
-  sampleLabel: {
-    fontSize: 12,
-    color: SecurityPalette.textSecondary,
-    marginBottom: 8,
-  },
-  samplePillsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  samplePill: {
-    backgroundColor: SecurityPalette.surfaceVariant,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: SecurityPalette.border,
-  },
-  samplePillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: SecurityPalette.textPrimary,
+  scannerHelperText: {
+    fontSize: 12.5,
+    color: SecurityPalette.textMuted,
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });
 

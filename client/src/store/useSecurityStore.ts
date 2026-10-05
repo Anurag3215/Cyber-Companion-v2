@@ -143,7 +143,7 @@ const INITIAL_SECURITY_SCORE: HolisticSecurityScore = {
   urlHygieneScore: 90,
   appPermissionScore: 80,
   breakdown: {
-    password: 85,
+    permissions: 85,
     device: 90,
     network: 75,
     privacy: 80,
@@ -270,7 +270,7 @@ export const useSecurityStore = create<SecurityState>((set) => ({
         overallScore: 94,
         appPermissionScore: 95,
         breakdown: {
-          password: 92,
+          permissions: 95,
           device: 96,
           network: 94,
           privacy: 95,
