@@ -8,31 +8,36 @@ import {
   ThreatEngineVerdict,
 } from '../types/security';
 
-const PRIMARY_GATEWAY = 'http://127.0.0.1:5000/api';
-const FALLBACK_GATEWAY = 'http://10.0.2.2:5000/api';
+const CANDIDATE_GATEWAYS = [
+  'http://192.168.1.17:5000/api',
+  'http://10.0.2.2:5000/api',
+  'http://127.0.0.1:5000/api',
+];
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: PRIMARY_GATEWAY,
-  timeout: 8000,
+  baseURL: CANDIDATE_GATEWAYS[0],
+  timeout: 6000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 });
 
-// Interceptor to fallback from 127.0.0.1 to 10.0.2.2 for Android emulators
+// Interceptor to fallback across LAN IP, emulator 10.0.2.2, and loopback 127.0.0.1
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const retryCount = originalRequest?._retryCount || 0;
     if (
-      error.code === 'ECONNREFUSED' &&
+      (error.code === 'ECONNREFUSED' ||
+        error.code === 'ECONNABORTED' ||
+        error.message?.includes('Network Error')) &&
       originalRequest &&
-      !originalRequest._retry &&
-      originalRequest.baseURL === PRIMARY_GATEWAY
+      retryCount < CANDIDATE_GATEWAYS.length - 1
     ) {
-      originalRequest._retry = true;
-      originalRequest.baseURL = FALLBACK_GATEWAY;
+      originalRequest._retryCount = retryCount + 1;
+      originalRequest.baseURL = CANDIDATE_GATEWAYS[originalRequest._retryCount];
       return axios(originalRequest);
     }
     return Promise.reject(error);
