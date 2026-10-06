@@ -31,6 +31,7 @@ import {
 } from '../components/SecurityIcons';
 import { SecurityGatewayService } from '../services/api';
 import { useSecurityStore } from '../store/useSecurityStore';
+import { NativeSecurityBridge } from '../services/nativeBridge';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WifiAnalyzer'>;
 
@@ -45,64 +46,6 @@ interface AvailableWifiNetwork {
   readonly isCaptivePortal?: boolean;
 }
 
-const DISCOVERED_NEARBY_NETWORKS: readonly AvailableWifiNetwork[] = [
-  {
-    id: 'net-1',
-    ssid: 'WiFi_5G',
-    securityType: 'WPA3',
-    securityLabel: 'WPA3 Personal (Strongest)',
-    signalDbm: -48,
-    signalBars: 4,
-    frequency: '5 GHz',
-  },
-  {
-    id: 'net-2',
-    ssid: 'HomeNetwork',
-    securityType: 'WPA2',
-    securityLabel: 'WPA2 Personal (Standard)',
-    signalDbm: -58,
-    signalBars: 4,
-    frequency: '2.4 GHz',
-  },
-  {
-    id: 'net-3',
-    ssid: 'MobileHotspot',
-    securityType: 'WPA3',
-    securityLabel: 'WPA3 Personal (Secured Hotspot)',
-    signalDbm: -64,
-    signalBars: 3,
-    frequency: '5 GHz',
-  },
-  {
-    id: 'net-4',
-    ssid: 'Airport_Free_WiFi',
-    securityType: 'OPEN',
-    securityLabel: 'Open / Unencrypted (High Risk)',
-    signalDbm: -72,
-    signalBars: 3,
-    frequency: '2.4 GHz',
-    isCaptivePortal: true,
-  },
-  {
-    id: 'net-5',
-    ssid: 'Public_Guest',
-    securityType: 'OPEN',
-    securityLabel: 'Open / Unsecured (No Password)',
-    signalDbm: -76,
-    signalBars: 2,
-    frequency: '2.4 GHz',
-  },
-  {
-    id: 'net-6',
-    ssid: 'Office_Legacy_AP',
-    securityType: 'WEP',
-    securityLabel: 'WEP (Broken Encryption / Insecure)',
-    signalDbm: -82,
-    signalBars: 1,
-    frequency: '2.4 GHz',
-  },
-];
-
 export const WifiAnalyzerScreen: React.FC<Props> = () => {
   const lastWifiAssessment = useSecurityStore((state) => state.lastWifiAssessment);
   const setWifiAssessment = useSecurityStore((state) => state.setWifiAssessment);
@@ -114,6 +57,10 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showConnectedReport, setShowConnectedReport] = useState(false);
+
+  // Live Discovered Over-the-Air Networks
+  const [availableNetworks, setAvailableNetworks] = useState<readonly AvailableWifiNetwork[]>([]);
+  const [scanningNearby, setScanningNearby] = useState(false);
 
   // Live Connected State
   const [isConnectedToWifi, setIsConnectedToWifi] = useState(false);
@@ -135,6 +82,51 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
   // Custom Network Inspector (Scan any network without connecting)
   const [customSsid, setCustomSsid] = useState('');
   const [customSecurityType, setCustomSecurityType] = useState<'OPEN' | 'WPA2' | 'WPA3' | 'WEP'>('OPEN');
+
+  const scanNearbyNetworks = useCallback(async () => {
+    if (!wifiMasterEnabled) return;
+    setScanningNearby(true);
+    try {
+      const rawAps = await NativeSecurityBridge.getNativeWifiScanResults();
+      const mapped: AvailableWifiNetwork[] = rawAps.map((ap, index) => {
+        const bars = ap.level >= -55 ? 4 : ap.level >= -70 ? 3 : ap.level >= -85 ? 2 : 1;
+        const freqLabel: '5 GHz' | '2.4 GHz' = ap.frequency > 4000 ? '5 GHz' : '2.4 GHz';
+        const secType: 'WPA3' | 'WPA2' | 'WEP' | 'OPEN' =
+          ap.securityType === 'WPA3'
+            ? 'WPA3'
+            : ap.securityType === 'WPA2'
+              ? 'WPA2'
+              : ap.securityType === 'WEP'
+                ? 'WEP'
+                : 'OPEN';
+
+        const secLabel =
+          secType === 'WPA3'
+            ? 'WPA3 Personal (Strongest)'
+            : secType === 'WPA2'
+              ? 'WPA2 Personal (Standard)'
+              : secType === 'WEP'
+                ? 'WEP (Broken / Insecure)'
+                : 'Open / Unencrypted (High Risk)';
+
+        return {
+          id: ap.bssid || `ap-${index}`,
+          ssid: ap.ssid,
+          securityType: secType,
+          securityLabel: secLabel,
+          signalDbm: ap.level,
+          signalBars: bars,
+          frequency: freqLabel,
+          isCaptivePortal: secType === 'OPEN',
+        };
+      });
+      setAvailableNetworks(mapped);
+    } catch (err) {
+      console.warn('[WifiAnalyzer] nearby scan error:', err);
+    } finally {
+      setScanningNearby(false);
+    }
+  }, [wifiMasterEnabled]);
 
   const runLiveWifiScan = useCallback(async () => {
     if (!wifiMasterEnabled) return;
@@ -235,7 +227,8 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
 
   useEffect(() => {
     runLiveWifiScan();
-  }, [runLiveWifiScan]);
+    scanNearbyNetworks();
+  }, [runLiveWifiScan, scanNearbyNetworks]);
 
   // Inspect any available network BEFORE connecting
   const inspectNetworkBeforeConnecting = async (net: AvailableWifiNetwork) => {
@@ -247,7 +240,7 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
     try {
       const result = await SecurityGatewayService.evaluateWifiRisk({
         ssid: net.ssid,
-        bssid: '02:00:00:00:00:00',
+        bssid: net.id || '02:00:00:00:00:00',
         encryption: net.securityType,
         signalStrengthDbm: net.signalDbm,
       });
@@ -614,91 +607,119 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
             />
           </View>
 
-          {/* 5. AVAILABLE NETWORKS LIST (Native Phone Wi-Fi Settings Style) */}
+          {/* 5. AVAILABLE NETWORKS LIST (Native Over-the-Air Wireless Beacons) */}
           <View style={styles.availableSection}>
             <View style={styles.availableHeaderRow}>
-              <Text style={styles.sectionTitle}>Available Networks</Text>
-              <Text style={styles.networkCountText}>
-                {DISCOVERED_NEARBY_NETWORKS.length} networks found
-              </Text>
+              <View>
+                <Text style={styles.sectionTitle}>Available Networks</Text>
+                <Text style={styles.networkCountText}>
+                  {availableNetworks.length} wireless beacons detected
+                </Text>
+              </View>
+              <Pressable onPress={scanNearbyNetworks} style={styles.refreshNearbyBtn}>
+                {scanningNearby ? (
+                  <ActivityIndicator size="small" color={SecurityPalette.primary} />
+                ) : (
+                  <Text style={styles.refreshNearbyBtnText}>↻ Re-Scan</Text>
+                )}
+              </Pressable>
             </View>
             <Text style={styles.availableSubtitle}>
-              Tap any network to inspect its cybersecurity risk before connecting.
+              Live over-the-air radio signals detected by your device antenna. Tap any network to inspect its cybersecurity risk before connecting.
             </Text>
 
-            <View style={styles.networksList}>
-              {DISCOVERED_NEARBY_NETWORKS.map((net) => {
-                const isSecured = net.securityType === 'WPA2' || net.securityType === 'WPA3';
-                const isOpen = net.securityType === 'OPEN';
-                const isWep = net.securityType === 'WEP';
+            {scanningNearby && availableNetworks.length === 0 ? (
+              <View style={styles.emptyScanBox}>
+                <ActivityIndicator size="small" color={SecurityPalette.primary} />
+                <Text style={styles.emptyScanText}>
+                  Scanning wireless channels for live broadcast beacons...
+                </Text>
+              </View>
+            ) : availableNetworks.length === 0 ? (
+              <View style={styles.emptyScanBox}>
+                <Text style={styles.emptyScanTitle}>No Wi-Fi Broadcasts Found</Text>
+                <Text style={styles.emptyScanText}>
+                  No active wireless beacons were picked up by the antenna. Ensure Wi-Fi is enabled and Location permissions are granted.
+                </Text>
+                <Pressable onPress={scanNearbyNetworks} style={styles.retryScanBtn}>
+                  <Text style={styles.retryScanBtnText}>Scan Again</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.networksList}>
+                {availableNetworks.map((net) => {
+                  const isSecured = net.securityType === 'WPA2' || net.securityType === 'WPA3';
+                  const isOpen = net.securityType === 'OPEN';
+                  const isWep = net.securityType === 'WEP';
 
-                return (
-                  <Pressable
-                    key={net.id}
-                    onPress={() => inspectNetworkBeforeConnecting(net)}
-                    style={styles.networkRow}>
-                    <View style={styles.signalIconCol}>
-                      <WifiSignalIcon
-                        size={22}
-                        color={
-                          isOpen
-                            ? SecurityPalette.critical
-                            : isWep
-                              ? SecurityPalette.warning
-                              : SecurityPalette.safe
-                        }
-                      />
-                    </View>
-
-                    <View style={styles.networkInfoCol}>
-                      <View style={styles.ssidLockRow}>
-                        <Text style={styles.networkSsidName}>{net.ssid}</Text>
-                        <View style={styles.lockIconBox}>
-                          {isSecured ? (
-                            <PadlockLockedIcon size={16} color={SecurityPalette.textSecondary} />
-                          ) : (
-                            <PadlockOpenIcon size={16} color={SecurityPalette.critical} />
-                          )}
-                        </View>
+                  return (
+                    <Pressable
+                      key={net.id}
+                      onPress={() => inspectNetworkBeforeConnecting(net)}
+                      style={styles.networkRow}>
+                      <View style={styles.signalIconCol}>
+                        <WifiSignalIcon
+                          size={22}
+                          color={
+                            isOpen
+                              ? SecurityPalette.critical
+                              : isWep
+                                ? SecurityPalette.warning
+                                : SecurityPalette.safe
+                          }
+                        />
                       </View>
-                      <Text
-                        style={[
-                          styles.networkSecuritySub,
-                          isOpen && { color: SecurityPalette.critical },
-                          isWep && { color: SecurityPalette.warning },
-                        ]}>
-                        {net.securityLabel} &bull; {net.frequency}
-                      </Text>
-                    </View>
 
-                    <View style={styles.networkBadgeCol}>
-                      <View
-                        style={[
-                          styles.riskChip,
-                          isOpen
-                            ? styles.riskChipDanger
-                            : isWep
-                              ? styles.riskChipWarning
-                              : styles.riskChipSafe,
-                        ]}>
+                      <View style={styles.networkInfoCol}>
+                        <View style={styles.ssidLockRow}>
+                          <Text style={styles.networkSsidName}>{net.ssid}</Text>
+                          <View style={styles.lockIconBox}>
+                            {isSecured ? (
+                              <PadlockLockedIcon size={16} color={SecurityPalette.textSecondary} />
+                            ) : (
+                              <PadlockOpenIcon size={16} color={SecurityPalette.critical} />
+                            )}
+                          </View>
+                        </View>
                         <Text
                           style={[
-                            styles.riskChipText,
-                            isOpen
-                              ? styles.riskChipTextDanger
-                              : isWep
-                                ? styles.riskChipTextWarning
-                                : styles.riskChipTextSafe,
+                            styles.networkSecuritySub,
+                            isOpen && { color: SecurityPalette.critical },
+                            isWep && { color: SecurityPalette.warning },
                           ]}>
-                          {isOpen ? 'Open Risk' : isWep ? 'Insecure' : 'Secure'}
+                          {net.securityLabel} &bull; {net.frequency}
                         </Text>
                       </View>
-                      <Text style={styles.inspectHint}>Inspect →</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
+
+                      <View style={styles.networkBadgeCol}>
+                        <View
+                          style={[
+                            styles.riskChip,
+                            isOpen
+                              ? styles.riskChipDanger
+                              : isWep
+                                ? styles.riskChipWarning
+                                : styles.riskChipSafe,
+                          ]}>
+                          <Text
+                            style={[
+                              styles.riskChipText,
+                              isOpen
+                                ? styles.riskChipTextDanger
+                                : isWep
+                                  ? styles.riskChipTextWarning
+                                  : styles.riskChipTextSafe,
+                            ]}>
+                            {isOpen ? 'Open Risk' : isWep ? 'Insecure' : 'Secure'}
+                          </Text>
+                        </View>
+                        <Text style={styles.inspectHint}>Inspect →</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
 
           {/* ADVANCED TELEMETRY (If Mode: Advanced is on) */}
@@ -1509,5 +1530,54 @@ const styles = StyleSheet.create({
   modalFooterActions: {
     marginTop: Spacing.md,
     marginBottom: Spacing.lg,
+  },
+  refreshNearbyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  refreshNearbyBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: SecurityPalette.primary,
+  },
+  emptyScanBox: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    marginVertical: Spacing.sm,
+  },
+  emptyScanTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: 4,
+  },
+  emptyScanText: {
+    fontSize: 12.5,
+    color: SecurityPalette.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  retryScanBtn: {
+    marginTop: Spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+    backgroundColor: SecurityPalette.surfaceVariant,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+  },
+  retryScanBtnText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: SecurityPalette.primary,
   },
 });

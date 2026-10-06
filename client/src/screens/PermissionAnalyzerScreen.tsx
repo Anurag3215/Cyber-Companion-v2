@@ -15,6 +15,7 @@ import { RootStackParamList } from '../types/security';
 import { SecurityPalette, Spacing, Radius } from '../theme/theme';
 import { AppButton, StatusBadge } from '../design-system/components';
 import { useSecurityStore } from '../store/useSecurityStore';
+import { NativeSecurityBridge, RealInstalledApp } from '../services/nativeBridge';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PermissionAnalyzer'>;
 
@@ -195,52 +196,46 @@ export const PermissionAnalyzerScreen: React.FC<Props> = () => {
 
   const [activeTab, setActiveTab] = useState<'InstalledApps' | 'Permissions'>('InstalledApps');
 
-  // Installed Apps Inventory (Screen 14 / 21)
-  const installedApps = [
-    {
-      id: 'app-1',
-      name: 'Camera Pro',
-      category: 'Media & Imaging',
-      permissions: ['Camera', 'Microphone'],
-      riskLevel: 'HIGH',
-      riskLabel: 'High Risk',
-      iconEmoji: '📷',
-    },
-    {
-      id: 'app-2',
-      name: 'City Maps & Transit',
-      category: 'Travel & Navigation',
-      permissions: ['Location (GPS)'],
-      riskLevel: 'MEDIUM',
-      riskLabel: 'Medium Risk',
-      iconEmoji: '🧭',
-    },
-    {
-      id: 'app-3',
-      name: 'Fast Web Browser',
-      category: 'Communication',
-      permissions: ['Storage', 'Location'],
-      riskLevel: 'LOW',
-      riskLabel: 'Low Risk',
-      iconEmoji: '🌐',
-    },
-    {
-      id: 'app-4',
-      name: 'Audio Studio & Music',
-      category: 'Entertainment',
-      permissions: ['Audio Playback', 'Storage'],
-      riskLevel: 'SAFE',
-      riskLabel: 'Safe',
-      iconEmoji: '🎵',
-    },
-  ];
+  // Dynamic Real Installed Apps from Android PackageManager
+  const [realApps, setRealApps] = useState<readonly RealInstalledApp[]>([]);
+  const [appsLoading, setAppsLoading] = useState(false);
+  const [appFilter, setAppFilter] = useState<'ALL' | 'CRITICAL' | 'LOCATION' | 'SMS' | 'OVERLAY'>('ALL');
+
+  const loadRealInstalledApps = useCallback(async () => {
+    setAppsLoading(true);
+    try {
+      const apps = await NativeSecurityBridge.getInstalledApps();
+      setRealApps(apps);
+    } catch {
+      // Fallback
+    } finally {
+      setAppsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRealInstalledApps();
+  }, [loadRealInstalledApps]);
+
+  const appsReviewedCount = realApps.length;
+  const criticalAppsCount = realApps.filter((a) => a.riskLevel === 'CRITICAL' || a.riskLevel === 'HIGH').length;
+  const mediumAppsCount = realApps.filter((a) => a.riskLevel === 'MEDIUM').length;
+  const lowAppsCount = realApps.filter((a) => a.riskLevel === 'LOW').length;
+
+  const filteredApps = realApps.filter((app) => {
+    if (appFilter === 'CRITICAL') return app.riskLevel === 'CRITICAL' || app.riskLevel === 'HIGH';
+    if (appFilter === 'LOCATION') return app.dangerousPermissions.some((p) => p.permission.includes('LOCATION'));
+    if (appFilter === 'SMS') return app.dangerousPermissions.some((p) => p.permission.includes('SMS'));
+    if (appFilter === 'OVERLAY') return app.dangerousPermissions.some((p) => p.permission.includes('SYSTEM_ALERT_WINDOW') || p.permission.includes('INSTALL_PACKAGES'));
+    return true;
+  });
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.headerBlock}>
         <Text style={styles.pageTitle}>Permission Analyzer</Text>
         <Text style={styles.pageSubtitle}>
-          Review what your apps can access across hardware sensors and sensitive storage.
+          Review what your apps can access across hardware sensors, sensitive storage, and background services.
         </Text>
       </View>
 
@@ -257,7 +252,7 @@ export const PermissionAnalyzerScreen: React.FC<Props> = () => {
               styles.segmentBtnText,
               activeTab === 'InstalledApps' && styles.segmentBtnTextActive,
             ]}>
-            Installed Apps
+            Installed Apps ({appsReviewedCount})
           </Text>
         </Pressable>
 
@@ -272,73 +267,147 @@ export const PermissionAnalyzerScreen: React.FC<Props> = () => {
               styles.segmentBtnText,
               activeTab === 'Permissions' && styles.segmentBtnTextActive,
             ]}>
-            Permissions
+            Hardware Permissions
           </Text>
         </Pressable>
       </View>
 
-      {/* SUMMARY STATS BAR (Screen 14) */}
+      {/* SUMMARY STATS BAR (Dynamic Data from Real Device) */}
       <View style={styles.summaryStatsRow}>
         <View style={styles.statTile}>
-          <Text style={styles.statLabel}>Apps Reviewed</Text>
-          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statLabel}>Apps Audited</Text>
+          <Text style={styles.statNumber}>{appsReviewedCount}</Text>
         </View>
         <View style={styles.statTile}>
-          <Text style={[styles.statLabel, { color: SecurityPalette.critical }]}>High Risk</Text>
-          <Text style={[styles.statNumber, { color: SecurityPalette.critical }]}>2</Text>
+          <Text style={[styles.statLabel, { color: SecurityPalette.critical }]}>High / Critical</Text>
+          <Text style={[styles.statNumber, { color: SecurityPalette.critical }]}>{criticalAppsCount}</Text>
         </View>
         <View style={styles.statTile}>
           <Text style={[styles.statLabel, { color: SecurityPalette.warning }]}>Medium Risk</Text>
-          <Text style={[styles.statNumber, { color: SecurityPalette.warning }]}>3</Text>
+          <Text style={[styles.statNumber, { color: SecurityPalette.warning }]}>{mediumAppsCount}</Text>
         </View>
         <View style={styles.statTile}>
-          <Text style={[styles.statLabel, { color: SecurityPalette.primary }]}>Low Risk</Text>
-          <Text style={[styles.statNumber, { color: SecurityPalette.primary }]}>7</Text>
+          <Text style={[styles.statLabel, { color: SecurityPalette.safe }]}>Low / Safe</Text>
+          <Text style={[styles.statNumber, { color: SecurityPalette.safe }]}>{lowAppsCount}</Text>
         </View>
       </View>
 
-      {/* TAB 1: INSTALLED APPS */}
+      {/* TAB 1: INSTALLED APPS (REAL ANDROID PACKAGES) */}
       {activeTab === 'InstalledApps' ? (
         <View style={styles.cardList}>
-          <Text style={styles.sectionHeaderTitle}>Installed Apps & Access</Text>
-          {installedApps.map((app) => (
-            <View key={app.id} style={styles.appCard}>
-              <View style={styles.appIconBox}>
-                <Text style={styles.appIconEmoji}>{app.iconEmoji}</Text>
-              </View>
-              <View style={styles.appInfoCol}>
-                <Text style={styles.appNameText}>{app.name}</Text>
-                <Text style={styles.appPermText}>
-                  {app.permissions.join(', ')}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.riskChip,
-                  app.riskLevel === 'HIGH'
-                    ? styles.riskChipHigh
-                    : app.riskLevel === 'MEDIUM'
-                      ? styles.riskChipMedium
-                      : app.riskLevel === 'LOW'
-                        ? styles.riskChipLow
-                        : styles.riskChipSafe,
-                ]}>
+          <View style={styles.appsHeaderRow}>
+            <Text style={styles.sectionHeaderTitle}>Installed Apps & Access</Text>
+            <Pressable onPress={loadRealInstalledApps} style={styles.refreshBtn}>
+              {appsLoading ? (
+                <ActivityIndicator size="small" color={SecurityPalette.primary} />
+              ) : (
+                <Text style={styles.refreshBtnText}>↻ Re-Scan Apps</Text>
+              )}
+            </Pressable>
+          </View>
+
+          {/* Filter Pills */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+            {(
+              [
+                { id: 'ALL', label: `All (${appsReviewedCount})` },
+                { id: 'CRITICAL', label: `⚠️ Risky (${criticalAppsCount})` },
+                { id: 'LOCATION', label: '📍 Location' },
+                { id: 'SMS', label: '✉️ SMS / OTP' },
+                { id: 'OVERLAY', label: '🪟 Overlays' },
+              ] as const
+            ).map((f) => (
+              <Pressable
+                key={f.id}
+                onPress={() => setAppFilter(f.id)}
+                style={[styles.filterChip, appFilter === f.id && styles.filterChipActive]}>
                 <Text
-                  style={[
-                    styles.riskChipText,
-                    app.riskLevel === 'HIGH'
-                      ? styles.riskChipTextHigh
-                      : app.riskLevel === 'MEDIUM'
-                        ? styles.riskChipTextMedium
-                        : app.riskLevel === 'LOW'
-                          ? styles.riskChipTextLow
-                          : styles.riskChipTextSafe,
-                  ]}>
-                  {app.riskLabel}
+                  style={[styles.filterChipText, appFilter === f.id && styles.filterChipTextActive]}>
+                  {f.label}
                 </Text>
-              </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          {appsLoading && realApps.length === 0 ? (
+            <View style={styles.appsLoadingBox}>
+              <ActivityIndicator size="large" color={SecurityPalette.primary} />
+              <Text style={styles.appsLoadingText}>
+                Auditing device applications and permission security flags...
+              </Text>
             </View>
-          ))}
+          ) : filteredApps.length === 0 ? (
+            <View style={styles.emptyAppsBox}>
+              <Text style={styles.emptyAppsTitle}>No Applications Found</Text>
+              <Text style={styles.emptyAppsSub}>
+                No applications on this device matched the selected filter criteria.
+              </Text>
+            </View>
+          ) : (
+            filteredApps.map((app) => (
+              <View key={app.packageName} style={styles.appCard}>
+                <View style={styles.appIconBox}>
+                  <Text style={styles.appIconEmoji}>
+                    {app.riskLevel === 'CRITICAL' ? '🚨' : app.riskLevel === 'HIGH' ? '⚠️' : '📱'}
+                  </Text>
+                </View>
+                <View style={styles.appInfoCol}>
+                  <View style={styles.appTitleRow}>
+                    <Text style={styles.appNameText} numberOfLines={1}>
+                      {app.appName}
+                    </Text>
+                    <Text style={styles.appVersionText}>v{app.versionName}</Text>
+                  </View>
+                  <Text style={styles.appPackageText} numberOfLines={1}>
+                    {app.packageName}
+                  </Text>
+
+                  {app.dangerousPermissions.length > 0 ? (
+                    <View style={styles.permsWrap}>
+                      {app.dangerousPermissions.map((p) => (
+                        <View key={p.permission} style={styles.permChip}>
+                          <Text style={styles.permChipText}>{p.friendlyName}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.noPermsText}>✓ No sensitive background permissions held</Text>
+                  )}
+
+                  <Pressable
+                    onPress={() => NativeSecurityBridge.openAppSettings(app.packageName)}
+                    style={styles.manageAppSettingsBtn}>
+                    <Text style={styles.manageAppSettingsText}>Manage in Android Settings ⚙️</Text>
+                  </Pressable>
+                </View>
+
+                <View style={styles.appRiskCol}>
+                  <View
+                    style={[
+                      styles.riskChip,
+                      app.riskLevel === 'CRITICAL' || app.riskLevel === 'HIGH'
+                        ? styles.riskChipHigh
+                        : app.riskLevel === 'MEDIUM'
+                          ? styles.riskChipMedium
+                          : styles.riskChipSafe,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.riskChipText,
+                        app.riskLevel === 'CRITICAL' || app.riskLevel === 'HIGH'
+                          ? styles.riskChipTextHigh
+                          : app.riskLevel === 'MEDIUM'
+                            ? styles.riskChipTextMedium
+                            : styles.riskChipTextSafe,
+                      ]}>
+                      {app.riskLevel}
+                    </Text>
+                  </View>
+                  <Text style={styles.riskScoreLabel}>{app.riskScore}/100 Risk</Text>
+                </View>
+              </View>
+            ))
+          )}
         </View>
       ) : null}
 
@@ -735,6 +804,142 @@ const styles = StyleSheet.create({
   },
   riskChipTextLow: {
     color: SecurityPalette.primary,
+  },
+  appsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  filtersScroll: {
+    marginBottom: Spacing.md,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    backgroundColor: SecurityPalette.surface,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    marginRight: 8,
+  },
+  filterChipActive: {
+    backgroundColor: SecurityPalette.primary,
+    borderColor: SecurityPalette.primary,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: SecurityPalette.textSecondary,
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  appsLoadingBox: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+  },
+  appsLoadingText: {
+    marginTop: Spacing.md,
+    fontSize: 13,
+    color: SecurityPalette.textSecondary,
+    textAlign: 'center',
+  },
+  emptyAppsBox: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: SecurityPalette.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+  },
+  emptyAppsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: SecurityPalette.textPrimary,
+    marginBottom: 4,
+  },
+  emptyAppsSub: {
+    fontSize: 12.5,
+    color: SecurityPalette.textSecondary,
+    textAlign: 'center',
+  },
+  appTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  appVersionText: {
+    fontSize: 11,
+    color: SecurityPalette.textSecondary,
+    backgroundColor: SecurityPalette.surfaceVariant,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  appPackageText: {
+    fontSize: 11,
+    color: SecurityPalette.textSecondary,
+    fontFamily: 'monospace',
+    marginBottom: 6,
+  },
+  permsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 8,
+  },
+  permChip: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  permChipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: SecurityPalette.critical,
+  },
+  noPermsText: {
+    fontSize: 11,
+    color: SecurityPalette.safe,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  manageAppSettingsBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: SecurityPalette.border,
+    marginTop: 2,
+  },
+  manageAppSettingsText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: SecurityPalette.textSecondary,
+  },
+  appRiskCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  riskScoreLabel: {
+    fontSize: 10,
+    color: SecurityPalette.textSecondary,
+    marginTop: 4,
+    fontWeight: '600',
   },
   riskChipTextSafe: {
     color: SecurityPalette.safe,
