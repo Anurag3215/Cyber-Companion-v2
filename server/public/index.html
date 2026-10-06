@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Companion — Desktop Security Suite</title>
+  <style>
+    :root {
+      --bg: #0B1221;
+      --surface: #131D31;
+      --surface-variant: #1A2742;
+      --border: #243454;
+      --primary: #3B82F6;
+      --primary-soft: rgba(59, 130, 246, 0.15);
+      --cyan: #06B6D4;
+      --safe: #10B981;
+      --safe-soft: rgba(16, 185, 129, 0.15);
+      --warning: #F59E0B;
+      --warning-soft: rgba(245, 158, 11, 0.15);
+      --critical: #EF4444;
+      --critical-soft: rgba(239, 68, 68, 0.15);
+      --text: #F8FAFC;
+      --text-sec: #94A3B8;
+      --text-muted: #64748B;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Top Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo-row { display: flex; align-items: center; gap: 12px; }
+    .logo-badge { width: 38px; height: 38px; border-radius: 10px; background: var(--primary-soft); border: 1px solid var(--primary); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .logo-title { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+    .logo-sub { font-size: 11px; color: var(--text-sec); }
+    .gateway-pill { display: flex; align-items: center; gap: 8px; background: var(--surface-variant); border: 1px solid var(--border); padding: 6px 14px; border-radius: 999px; font-size: 12px; }
+    .dot-online { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 8px var(--safe); }
+    
+    /* Navigation Bar */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-sec);
+      padding: 14px 18px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .nav-btn:hover { color: var(--text); }
+    .nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+    
+    /* Main Container */
+    main { max-width: 1180px; width: 100%; margin: 0 auto; padding: 28px 20px; flex: 1; }
+    
+    /* Cards & Containers */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .card-title { font-size: 17px; font-weight: 800; }
+    .card-desc { font-size: 13px; color: var(--text-sec); margin-top: 4px; line-height: 1.5; }
+    
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 800px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+    
+    /* Stat Tile */
+    .stat-tile {
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-number { font-size: 28px; font-weight: 800; }
+    .stat-label { font-size: 12px; color: var(--text-sec); margin-top: 4px; font-weight: 600; }
+    
+    /* Inputs & Buttons */
+    .input-row { display: flex; gap: 10px; margin-top: 14px; }
+    .text-input {
+      flex: 1;
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .text-input:focus { border-color: var(--primary); }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--surface-variant); border: 1px solid var(--border); color: var(--text); }
+    .btn-secondary:hover { background: var(--border); }
+    
+    /* Quick Chips */
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .chip {
+      background: var(--surface-variant);
+      border: 1px solid var(--border);
+      color: var(--text-sec);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip:hover { border-color: var(--primary); color: var(--text); }
+    .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; }
+    
+    /* Result Box */
+    .result-box {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-variant);
+      display: none;
+    }
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-safe { background: var(--safe-soft); color: var(--safe); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-warning { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-critical { background: var(--critical-soft); color: var(--critical); border: 1px solid rgba(239, 68, 68, 0.3); }
+    
+    /* Telemetry Table */
+    .telemetry-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 12.5px; }
+    .telemetry-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .telemetry-table td:first-child { color: var(--text-sec); width: 40%; font-weight: 600; }
+    .telemetry-table td:last-child { color: var(--text); font-family: monospace; }
+    
+    /* Progress Bar */
+    .bar-wrap { margin-top: 12px; }
+    .bar-label-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; color: var(--text-sec); }
+    .bar-bg { width: 100%; height: 8px; background: var(--surface-variant); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width 0.4s; }
+    
+    /* Event List */
+    .event-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .event-item:last-child { border-bottom: none; }
+    
+    /* Tab views */
+    .tab-view { display: none; }
+    .tab-view.active { display: block; }
+    
+    /* Loader */
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="logo-row">
+      <div class="logo-badge">🛡️</div>
+      <div>
+        <div class="logo-title">Cyber Companion</div>
+        <div class="logo-sub">Desktop Security & Threat Intelligence Suite</div>
+      </div>
+    </div>
+    <div class="gateway-pill">
+      <div class="dot-online"></div>
+      <span id="gateway-status">Backend Gateway: http://localhost:5000 (Connected)</span>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav>
+    <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="nav-btn" onclick="switchTab('url-scanner')">🌐 URL Threat Scanner</button>
+    <button class="nav-btn" onclick="switchTab('wifi-analyzer')">📡 Wi-Fi Risk Analyzer</button>
+    <button class="nav-btn" onclick="switchTab('score-engine')">🎯 Security Scoring Engine</button>
+    <button class="nav-btn" onclick="switchTab('awareness')">📚 Awareness & Quiz</button>
+    <button class="nav-btn" onclick="switchTab('reports')">📑 Audit Reports</button>
+  </nav>
+
+  <main>
+    <!-- 1. DASHBOARD TAB -->
+    <div id="tab-dashboard" class="tab-view active">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Device Security Score</div>
+              <div class="card-desc">Multi-factor holistic score evaluated from real telemetry</div>
+            </div>
+            <button class="btn btn-secondary" onclick="calculateLiveScore()">↻ Recalculate</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 24px; margin-top: 10px;">
+            <div style="font-size: 54px; font-weight: 900; color: var(--safe);" id="dash-score-display">--</div>
+            <div>
+              <div style="font-size: 16px; font-weight: 700;" id="dash-score-title">Computing Security Posture...</div>
+              <div style="font-size: 12.5px; color: var(--text-sec); margin-top: 4px;" id="dash-score-sub">Querying live backend scoring engine...</div>
+            </div>
+          </div>
+          <div class="bar-wrap" style="margin-top: 20px;">
+            <div class="bar-label-row"><span>Overall Security Index</span><span id="dash-score-pct">0%</span></div>
+            <div class="bar-bg"><div class="bar-fill" id="dash-score-bar" style="width: 0%;"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Threat Gateway Diagnostics</div>
+          <div class="card-desc">Real-time status of threat intelligence sources & heuristics</div>
+          <table class="telemetry-table" style="margin-top: 14px;">
+            <tr><td>Backend API</td><td style="color: var(--safe);">✓ Active (Express 5 Gateway)</td></tr>
+            <tr><td>Threat Cache</td><td style="color: var(--safe);">✓ In-Memory LRU (15m TTL)</td></tr>
+            <tr><td>SSRF Guard</td><td style="color: var(--safe);">✓ Active (Cloud metadata blocked)</td></tr>
+            <tr><td>Heuristics Engine</td><td style="color: var(--safe);">✓ Active (Phishing & TLD rules)</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="stat-tile">
+          <div class="stat-number" style="color: var(--primary);" id="stat-total-scans">0</div>
+          <div class="stat-label">Total Audits</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-number" style="color: var(--safe);" id="stat-clean-scans">0</div>
+          <div class="stat-label">Clean Scans</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-number" style="color: var(--critical);" id="stat-threats">0</div>
+          <div class="stat-label">Threats Flagged</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-number" style="color: var(--cyan);" id="stat-cache-hits">0</div>
+          <div class="stat-label">Cache Hits</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-title">Live Audit History</div>
+        <div class="card-desc">Persisted audit events from URL, QR, and Wi-Fi evaluations</div>
+        <div id="live-history-list" style="margin-top: 12px;">
+          <div style="padding: 24px; text-align: center; color: var(--text-sec); font-size: 13px;">
+            No audit events recorded yet. Run a URL or Wi-Fi security check to build history.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. URL THREAT SCANNER TAB -->
+    <div id="tab-url-scanner" class="tab-view">
+      <div class="card">
+        <div class="card-title">URL & Web Link Threat Scanner</div>
+        <div class="card-desc">Inspect web links for phishing, brand impersonation, and malicious vectors via live threat intelligence.</div>
+        
+        <div class="input-row">
+          <input type="text" id="url-input" class="text-input" placeholder="Enter URL (e.g., https://google.com or suspicious link)..." value="https://google.com">
+          <button class="btn" id="btn-scan-url" onclick="scanUrl()">Scan Link 🔍</button>
+        </div>
+
+        <div class="chip-row">
+          <span style="font-size: 12px; color: var(--text-sec); align-self: center;">Quick Test:</span>
+          <div class="chip" onclick="quickTestUrl('https://google.com')">https://google.com (Safe)</div>
+          <div class="chip" onclick="quickTestUrl('https://github.com')">https://github.com (Safe)</div>
+          <div class="chip" onclick="quickTestUrl('http://paypal-security-verification.top')">paypal-security-verification.top (Phishing)</div>
+          <div class="chip" onclick="quickTestUrl('http://169.254.169.254/latest')">169.254.169.254 (SSRF Blocked)</div>
+        </div>
+
+        <div id="url-result" class="result-box">
+          <div class="result-header">
+            <div>
+              <span id="url-badge" class="badge badge-safe">SAFE</span>
+              <span id="url-cache-pill" style="font-size: 11px; margin-left: 8px; color: var(--cyan);"></span>
+            </div>
+            <div style="font-size: 13px; font-weight: 700;" id="url-risk-score">0/100 Risk Score</div>
+          </div>
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 6px;" id="url-verdict"></div>
+          <div style="font-size: 13.5px; color: var(--text-sec); line-height: 1.5;" id="url-rec"></div>
+          
+          <table class="telemetry-table">
+            <tr><td>Target URL</td><td id="t-url"></td></tr>
+            <tr><td>Domain</td><td id="t-domain"></td></tr>
+            <tr><td>Heuristic Flags</td><td id="t-flags"></td></tr>
+            <tr><td>Threat Engines</td><td id="t-engines"></td></tr>
+            <tr><td>Scan Timestamp</td><td id="t-time"></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. WI-FI RISK ANALYZER TAB -->
+    <div id="tab-wifi-analyzer" class="tab-view">
+      <div class="card">
+        <div class="card-title">Wi-Fi Risk Analyzer (Pre-Connection Audit)</div>
+        <div class="card-desc">Evaluate the cybersecurity safety of any wireless network before connecting your computer or mobile device.</div>
+
+        <div class="grid-2" style="margin-top: 14px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec);">Network Name (SSID):</label>
+            <input type="text" id="wifi-ssid" class="text-input" style="width: 100%; margin-top: 4px;" value="Home_Secure_WiFi">
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec);">Encryption Standard:</label>
+            <select id="wifi-enc" class="text-input" style="width: 100%; margin-top: 4px;">
+              <option value="WPA3">WPA3 (Personal / Enterprise — Strongest)</option>
+              <option value="WPA2" selected>WPA2 (Standard Personal)</option>
+              <option value="WEP">WEP (Broken Encryption / Insecure)</option>
+              <option value="OPEN">OPEN (Unencrypted / Public Hotspot)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 12px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec);">Signal Strength (dBm):</label>
+            <input type="number" id="wifi-signal" class="text-input" style="width: 100%; margin-top: 4px;" value="-52">
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec);">BSSID (Router MAC):</label>
+            <input type="text" id="wifi-bssid" class="text-input" style="width: 100%; margin-top: 4px;" value="00:1A:2B:3C:4D:5E">
+          </div>
+        </div>
+
+        <button class="btn" style="margin-top: 16px;" onclick="scanWifi()">Audit Network Risk 🔍</button>
+
+        <div id="wifi-result" class="result-box">
+          <div class="result-header">
+            <span id="wifi-badge" class="badge badge-safe">SAFE</span>
+            <div style="font-size: 13px; font-weight: 700;" id="wifi-risk-score">0/100 Risk Score</div>
+          </div>
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 6px;" id="wifi-title"></div>
+          
+          <div style="margin-top: 12px;">
+            <div style="font-size: 11px; font-weight: 800; color: var(--primary);">WHY?</div>
+            <div style="font-size: 13.5px; color: var(--text-sec); margin-top: 2px;" id="wifi-why"></div>
+          </div>
+
+          <div style="margin-top: 12px;">
+            <div style="font-size: 11px; font-weight: 800; color: var(--safe);">RECOMMENDED ACTION</div>
+            <div style="font-size: 13.5px; color: var(--text); margin-top: 2px; font-weight: 600;" id="wifi-act"></div>
+          </div>
+
+          <table class="telemetry-table" style="margin-top: 14px;">
+            <tr><td>Network Security</td><td id="t-w-sec"></td></tr>
+            <tr><td>ARP Spoofing Status</td><td id="t-w-arp">Clean</td></tr>
+            <tr><td>Captive Portal Flag</td><td id="t-w-cap">No</td></tr>
+            <tr><td>Evaluation Time</td><td id="t-w-time"></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. SCORE ENGINE TAB -->
+    <div id="tab-score-engine" class="tab-view">
+      <div class="card">
+        <div class="card-title">Holistic Security Scoring Engine</div>
+        <div class="card-desc">Calculate your multi-factor security posture using the backend scoring algorithm.</div>
+
+        <div class="grid-2" style="margin-top: 16px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec);">Active Wi-Fi Encryption:</label>
+            <select id="score-wifi" class="text-input" style="width: 100%; margin-top: 4px;" onchange="calculateLiveScore()">
+              <option value="WPA3">WPA3 (High Security)</option>
+              <option value="WPA2" selected>WPA2 (Standard)</option>
+              <option value="OPEN">Open (Unsecured)</option>
+              <option value="WEP">WEP (Compromised)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-sec);">High-Risk Apps with Sensitive Access:</label>
+            <input type="number" id="score-perms" class="text-input" style="width: 100%; margin-top: 4px;" value="1" min="0" max="10" onchange="calculateLiveScore()">
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <input type="checkbox" id="score-screenlock" checked onchange="calculateLiveScore()" style="width: 18px; height: 18px;">
+            <label for="score-screenlock" style="font-size: 13.5px; font-weight: 600;">Device Passcode / Biometric Lock Active</label>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <input type="checkbox" id="score-os" checked onchange="calculateLiveScore()" style="width: 18px; height: 18px;">
+            <label for="score-os" style="font-size: 13.5px; font-weight: 600;">Operating System & Security Patches Up to Date</label>
+          </div>
+        </div>
+
+        <div id="score-breakdown-box" style="margin-top: 24px; padding: 20px; border-radius: 12px; background: var(--surface-variant); border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 16px; font-weight: 800;">Calculated Breakdown</div>
+            <div style="font-size: 24px; font-weight: 900; color: var(--safe);" id="score-breakdown-total">--/100</div>
+          </div>
+          <div id="score-breakdown-bars" style="margin-top: 14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. AWARENESS & QUIZ TAB -->
+    <div id="tab-awareness" class="tab-view">
+      <div class="card">
+        <div class="card-title">Security Awareness Quiz</div>
+        <div class="card-desc">Test your digital self-defense instincts against real-world phishing and scam scenarios.</div>
+        
+        <div id="quiz-container" style="margin-top: 20px;"></div>
+        <div id="quiz-score-box" style="display: none; padding: 20px; border-radius: 12px; background: var(--surface-variant); border: 1px solid var(--border); text-align: center; margin-top: 20px;">
+          <div style="font-size: 32px;" id="quiz-icon">🏆</div>
+          <div style="font-size: 20px; font-weight: 800; margin-top: 8px;" id="quiz-score-title"></div>
+          <div style="font-size: 14px; color: var(--text-sec); margin-top: 4px;" id="quiz-score-sub"></div>
+          <button class="btn" style="margin-top: 16px;" onclick="resetQuiz()">Retake Quiz ↻</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. AUDIT REPORTS TAB -->
+    <div id="tab-reports" class="tab-view">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Export Verified Security Report</div>
+            <div class="card-desc">Download a comprehensive plain-text security report summarizing your device telemetry and audit events.</div>
+          </div>
+          <button class="btn" onclick="downloadReport()">Download Report 📥</button>
+        </div>
+
+        <pre id="report-preview" style="background: var(--surface-variant); border: 1px solid var(--border); padding: 20px; border-radius: 12px; font-family: monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; color: var(--text);"></pre>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // State Store
+    let scanHistory = [];
+    let cacheHits = 0;
+    let cleanScans = 0;
+    let threatsFlagged = 0;
+    let currentScore = 85;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      event.target.classList.add('active');
+      if (tabId === 'reports') updateReportPreview();
+    }
+
+    // URL Threat Scanner
+    function quickTestUrl(url) {
+      document.getElementById('url-input').value = url;
+      scanUrl();
+    }
+
+    async function scanUrl() {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) return;
+      const btn = document.getElementById('btn-scan-url');
+      btn.innerHTML = '<span class="spinner"></span> Scanning...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/v1/scan/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const json = await res.json();
+        
+        if (!json.success) {
+          alert('Scan failed: ' + (json.error || json.message));
+          return;
+        }
+
+        const d = json.data;
+        const box = document.getElementById('url-result');
+        box.style.display = 'block';
+
+        const badge = document.getElementById('url-badge');
+        badge.className = 'badge badge-' + (d.threatLevel === 'SAFE' ? 'safe' : d.threatLevel === 'SUSPICIOUS' ? 'warning' : 'critical');
+        badge.innerText = d.threatLevel;
+
+        document.getElementById('url-cache-pill').innerText = d.cached ? '⚡ In-Memory LRU Cached' : '🌐 Fresh Analysis';
+        document.getElementById('url-risk-score').innerText = (d.isMalicious ? '95/100' : d.threatLevel === 'SUSPICIOUS' ? '45/100' : '5/100') + ' Risk';
+        document.getElementById('url-verdict').innerText = d.plainLanguageVerdict;
+        document.getElementById('url-rec').innerText = d.actionRecommendation;
+
+        document.getElementById('t-url').innerText = d.targetUrl;
+        document.getElementById('t-domain').innerText = d.technicalDetails.domain;
+        document.getElementById('t-flags').innerText = d.technicalDetails.heuristicFlags.join(', ') || 'None';
+        document.getElementById('t-engines').innerText = `VirusTotal: ${d.vendorFlags.virusTotal} | SafeBrowsing: ${d.vendorFlags.safeBrowsing ? 'FLAGGED' : 'Clean'} | URLScan: ${d.vendorFlags.urlScan ? 'FLAGGED' : 'Clean'}`;
+        document.getElementById('t-time').innerText = new Date(d.technicalDetails.scanTimestamp).toLocaleString();
+
+        // Record History
+        if (d.cached) cacheHits++;
+        if (d.isMalicious) threatsFlagged++; else cleanScans++;
+        addHistoryEvent('URL Scan', d.targetUrl, d.threatLevel);
+        updateStats();
+
+      } catch (err) {
+        alert('Network error connecting to backend: ' + err.message);
+      } finally {
+        btn.innerHTML = 'Scan Link 🔍';
+        btn.disabled = false;
+      }
+    }
+
+    // Wi-Fi Risk Analyzer
+    async function scanWifi() {
+      const ssid = document.getElementById('wifi-ssid').value.trim() || 'Unknown_Network';
+      const encryption = document.getElementById('wifi-enc').value;
+      const signal = Number(document.getElementById('wifi-signal').value) || -50;
+      const bssid = document.getElementById('wifi-bssid').value.trim() || '00:11:22:33:44:55';
+
+      try {
+        const res = await fetch('/api/v1/scan/wifi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ssid, encryption, signalStrengthDbm: signal, bssid })
+        });
+        const json = await res.json();
+        if (!json.success) {
+          alert('Wi-Fi check failed: ' + json.error);
+          return;
+        }
+
+        const d = json.data;
+        const box = document.getElementById('wifi-result');
+        box.style.display = 'block';
+
+        const badge = document.getElementById('wifi-badge');
+        badge.className = 'badge badge-' + (d.threatLevel === 'SAFE' ? 'safe' : d.threatLevel === 'SUSPICIOUS' ? 'warning' : 'critical');
+        badge.innerText = d.threatLevel;
+
+        document.getElementById('wifi-risk-score').innerText = d.riskScore + '/100 Risk';
+        document.getElementById('wifi-title').innerText = d.verdict.whatHappened;
+        document.getElementById('wifi-why').innerText = d.verdict.whyItMatters;
+        document.getElementById('wifi-act').innerText = d.verdict.whatShouldIDo;
+
+        document.getElementById('t-w-sec').innerText = `${d.securityType} (${d.technicalDetails.rawSecurity})`;
+        document.getElementById('t-w-arp').innerText = d.technicalDetails.isArpSpoofed ? '🚨 POISONED / MITM' : '✓ Clean';
+        document.getElementById('t-w-cap').innerText = d.technicalDetails.isCaptivePortal ? '⚠️ Captive Portal' : 'None';
+        document.getElementById('t-w-time').innerText = new Date(d.technicalDetails.assessmentTimestamp).toLocaleString();
+
+        if (d.threatLevel === 'CRITICAL' || d.threatLevel === 'SUSPICIOUS') threatsFlagged++; else cleanScans++;
+        addHistoryEvent('Wi-Fi Audit', ssid, d.threatLevel);
+        updateStats();
+
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // Live Security Score Engine
+    async function calculateLiveScore() {
+      const wifiEnc = document.getElementById('score-wifi').value;
+      const perms = Number(document.getElementById('score-perms').value) || 0;
+      const screenLock = document.getElementById('score-screenlock').checked;
+      const osUpdated = document.getElementById('score-os').checked;
+
+      try {
+        const res = await fetch('/api/v1/score/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wifi: { securityType: wifiEnc },
+            device: { isScreenLockEnabled: screenLock, isOsUpToDate: osUpdated },
+            permissions: { unnecessaryHighRiskCount: perms }
+          })
+        });
+        const json = await res.json();
+        if (!json.success) return;
+
+        const score = json.data.overallScore;
+        currentScore = score;
+        const b = json.data.breakdown;
+
+        // Update Dashboard
+        document.getElementById('dash-score-display').innerText = score;
+        document.getElementById('dash-score-display').style.color = score >= 80 ? 'var(--safe)' : score >= 50 ? 'var(--warning)' : 'var(--critical)';
+        document.getElementById('dash-score-pct').innerText = score + '%';
+        document.getElementById('dash-score-bar').style.width = score + '%';
+        document.getElementById('dash-score-bar').style.background = score >= 80 ? 'var(--safe)' : score >= 50 ? 'var(--warning)' : 'var(--critical)';
+        document.getElementById('dash-score-title').innerText = score >= 80 ? 'Strong Security Posture' : score >= 50 ? 'Moderate Risk Signals' : 'Critical Action Needed';
+        document.getElementById('dash-score-sub').innerText = score >= 80 ? 'Your device network and privacy controls are well protected.' : 'Review Wi-Fi encryption and permissions to tighten privacy.';
+
+        // Update Engine Tab
+        document.getElementById('score-breakdown-total').innerText = score + '/100';
+        document.getElementById('score-breakdown-total').style.color = score >= 80 ? 'var(--safe)' : score >= 50 ? 'var(--warning)' : 'var(--critical)';
+
+        const barsHtml = `
+          <div class="bar-wrap"><div class="bar-label-row"><span>Device OS & Screen Lock</span><span>${b.device}/100</span></div><div class="bar-bg"><div class="bar-fill" style="width: ${b.device}%;"></div></div></div>
+          <div class="bar-wrap"><div class="bar-label-row"><span>Network & Wi-Fi Encryption</span><span>${b.network}/100</span></div><div class="bar-bg"><div class="bar-fill" style="width: ${b.network}%;"></div></div></div>
+          <div class="bar-wrap"><div class="bar-label-row"><span>Privacy & Permissions</span><span>${b.privacy}/100</span></div><div class="bar-bg"><div class="bar-fill" style="width: ${b.privacy}%;"></div></div></div>
+          <div class="bar-wrap"><div class="bar-label-row"><span>Threat Awareness</span><span>${b.awareness}/100</span></div><div class="bar-bg"><div class="bar-fill" style="width: ${b.awareness}%;"></div></div></div>
+        `;
+        document.getElementById('score-breakdown-bars').innerHTML = barsHtml;
+
+      } catch (err) {
+        console.warn('Score error:', err);
+      }
+    }
+
+    // Stats & History
+    function addHistoryEvent(type, target, status) {
+      scanHistory.unshift({
+        type, target, status, time: new Date().toLocaleTimeString()
+      });
+      renderHistory();
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total-scans').innerText = scanHistory.length;
+      document.getElementById('stat-clean-scans').innerText = cleanScans;
+      document.getElementById('stat-threats').innerText = threatsFlagged;
+      document.getElementById('stat-cache-hits').innerText = cacheHits;
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('live-history-list');
+      if (scanHistory.length === 0) {
+        list.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-sec); font-size: 13px;">No audit events recorded yet.</div>';
+        return;
+      }
+      list.innerHTML = scanHistory.map(h => `
+        <div class="event-item">
+          <div>
+            <div style="font-weight: 700; color: var(--text);">${h.target}</div>
+            <div style="font-size: 11.5px; color: var(--text-sec); margin-top: 2px;">${h.type} • ${h.time}</div>
+          </div>
+          <span class="badge badge-${h.status === 'SAFE' ? 'safe' : h.status === 'SUSPICIOUS' ? 'warning' : 'critical'}">${h.status}</span>
+        </div>
+      `).join('');
+    }
+
+    // Awareness Quiz
+    const QUIZ = [
+      { q: "You receive an SMS saying your delivery has a $1.50 fee with a link. What should you do?", opts: ["Tap link immediately", "Do not tap; verify in Cyber Companion or official app", "Reply asking for details"], ans: 1, exp: "Delivery fee texts are common phishing tricks. Always inspect links before clicking." },
+      { q: "A stranger calls claiming to be bank fraud support and asks for the 6-digit code texted to you. Is it safe to share?", opts: ["Yes, if they sound professional", "No—never share a 6-digit verification code with anyone", "Only if they reverse charges"], ans: 1, exp: "Real bank staff NEVER ask for verification codes. That code allows attackers to sign in." },
+      { q: "You are at a cafe connected to 'Free_Cafe_WiFi' (no password). Which activity is best to wait and do on mobile data?", opts: ["Checking weather", "Online banking money transfer", "Reading news"], ans: 1, exp: "Open Wi-Fi without a password is not encrypted. Sensitive banking is much safer on mobile data." },
+      { q: "A flashlight app asks for Contacts and Microphone permissions. What is the safest choice?", opts: ["Allow all", "Deny those permissions—flashlights only need the camera flash", "Ignore it"], ans: 1, exp: "App permissions should match the app purpose. A flashlight never needs a microphone or contacts." },
+      { q: "A buyer online sends a QR code saying 'Scan and enter your PIN to receive $50'. What happens if you scan it?", opts: ["You receive $50", "Money is sent OUT of your account—PINs only send money", "Bank verifies identity"], ans: 1, exp: "Payment QR codes and PINs are only used to SEND money. Anyone claiming you need a PIN to receive is scamming." }
+    ];
+    let quizAnswers = {};
+
+    function renderQuiz() {
+      const c = document.getElementById('quiz-container');
+      c.innerHTML = QUIZ.map((q, idx) => `
+        <div style="margin-bottom: 20px; padding: 16px; background: var(--surface-variant); border-radius: 12px; border: 1px solid var(--border);">
+          <div style="font-size: 14.5px; font-weight: 700; margin-bottom: 12px;">Q${idx + 1}: ${q.q}</div>
+          ${q.opts.map((opt, oIdx) => `
+            <div style="margin-bottom: 8px;">
+              <button class="btn btn-secondary" style="width: 100%; text-align: left; justify-content: flex-start; padding: 10px 14px; font-size: 13px;" onclick="answerQuiz(${idx}, ${oIdx})">
+                ${oIdx + 1}. ${opt}
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+
+    function answerQuiz(qIdx, oIdx) {
+      quizAnswers[qIdx] = oIdx;
+      if (Object.keys(quizAnswers).length === QUIZ.length) {
+        let score = 0;
+        QUIZ.forEach((q, i) => { if (quizAnswers[i] === q.ans) score++; });
+        document.getElementById('quiz-container').style.display = 'none';
+        const box = document.getElementById('quiz-score-box');
+        box.style.display = 'block';
+        document.getElementById('quiz-score-title').innerText = `You Scored ${score} / ${QUIZ.length} (${Math.round(score / QUIZ.length * 100)}%)`;
+        document.getElementById('quiz-score-sub').innerText = score === 5 ? "Outstanding! Your threat awareness instincts are hardened." : "Good job! Review the explanations above to tighten your awareness.";
+      }
+    }
+
+    function resetQuiz() {
+      quizAnswers = {};
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('quiz-score-box').style.display = 'none';
+      renderQuiz();
+    }
+
+    // Reports Preview & Download
+    function updateReportPreview() {
+      const date = new Date().toLocaleString();
+      const report = [
+        "===========================================================",
+        "🛡️ CYBER COMPANION — VERIFIED AUDIT REPORT",
+        "===========================================================",
+        `Generated: ${date}`,
+        `Device Security Score: ${currentScore}/100`,
+        "",
+        "--- SCAN & TELEMETRY SUMMARY ---",
+        `Total Audits Conducted: ${scanHistory.length}`,
+        `Clean Scans: ${cleanScans}`,
+        `Threats Flagged: ${threatsFlagged}`,
+        `In-Memory Cache Hits: ${cacheHits}`,
+        "",
+        "--- PERSISTED AUDIT LOGS ---",
+        scanHistory.length > 0
+          ? scanHistory.map((h, i) => `${i + 1}. [${h.time}] ${h.type} | ${h.target} -> ${h.status}`).join('\n')
+          : "No security activity recorded yet.",
+        "",
+        "===========================================================",
+        "Verified by Cyber Companion Desktop Security Gateway Engine",
+        "==========================================================="
+      ].join('\n');
+      document.getElementById('report-preview').innerText = report;
+    }
+
+    function downloadReport() {
+      const text = document.getElementById('report-preview').innerText;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Cyber_Companion_Report_${Date.now()}.txt`;
+      a.click();
+    }
+
+    // Init
+    window.addEventListener('DOMContentLoaded', () => {
+      calculateLiveScore();
+      renderQuiz();
+      updateStats();
+    });
+  </script>
+</body>
+</html>

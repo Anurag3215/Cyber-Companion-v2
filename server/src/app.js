@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const threatRoutes = require('./routes/threatRoutes');
@@ -64,7 +65,10 @@ app.use('/api/v1', wifiRoutes);
 app.use('/api', threatRoutes);
 app.use('/api', wifiRoutes);
 
-// 6. 404 Fallback Handler
+// 6. Static Web Client
+app.use(express.static(path.join(__dirname, '../public')));
+
+// 7. 404 Fallback Handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
