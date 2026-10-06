@@ -214,5 +214,27 @@ describe('Cyber Companion Threat Gateway Suite', () => {
       assert.ok(json.data.breakdown.device);
       assert.ok(json.data.breakdown.privacy);
     });
+
+    test('POST /api/v1/scan/url returns cached response on second lookup', async () => {
+      const target = 'https://cached-test-domain.org';
+      const first = await fetch(`${baseUrl}/api/v1/scan/url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: target }),
+      });
+      const json1 = await first.json();
+      assert.equal(json1.success, true);
+      assert.equal(Boolean(json1.data.cached), false);
+
+      const second = await fetch(`${baseUrl}/api/v1/scan/url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: target }),
+      });
+      const json2 = await second.json();
+      assert.equal(json2.success, true);
+      assert.equal(json2.data.cached, true);
+      assert.ok(json2.data.cachedAt);
+    });
   });
 });

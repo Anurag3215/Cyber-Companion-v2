@@ -5,6 +5,39 @@ const { evaluateUrlHeuristics } = require('./heuristicsService');
 
 const UPSTREAM_TIMEOUT_MS = 4000;
 
+// In-Memory LRU Threat Intelligence Cache (15 min TTL, max 500 entries)
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 500;
+const threatCache = new Map();
+
+function getCachedResult(url) {
+  const entry = threatCache.get(url);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    threatCache.delete(url);
+    return null;
+  }
+  // Move to most-recently used
+  threatCache.delete(url);
+  threatCache.set(url, entry);
+  return entry.result;
+}
+
+function setCachedResult(url, result) {
+  if (threatCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = threatCache.keys().next().value;
+    if (oldestKey) threatCache.delete(oldestKey);
+  }
+  threatCache.set(url, {
+    timestamp: Date.now(),
+    result,
+  });
+}
+
+function clearThreatCache() {
+  threatCache.clear();
+}
+
 /**
  * Encodes a URL to a URL-safe Base64 string (RFC 4648 §5) without padding for VirusTotal v3 API.
  * @param {string} url
@@ -150,6 +183,16 @@ async function queryUrlScan(url, apiKey) {
  * }>}
  */
 async function scanUrlWithIntelligence(sanitizedUrl, parsedUrl) {
+  // Check in-memory LRU threat cache first
+  const cached = getCachedResult(sanitizedUrl);
+  if (cached) {
+    return {
+      ...cached,
+      cached: true,
+      cachedAt: new Date(cached.technicalDetails.scanTimestamp).toISOString(),
+    };
+  }
+
   const vtKey = process.env.VIRUSTOTAL_API_KEY;
   const gsbKey = process.env.SAFEBROWSING_API_KEY;
   const usKey = process.env.URLSCAN_API_KEY;
@@ -210,7 +253,7 @@ async function scanUrlWithIntelligence(sanitizedUrl, parsedUrl) {
     actionRecommendation = 'You can browse safely. Always verify the address bar before logging in.';
   }
 
-  return {
+  const result = {
     targetUrl: sanitizedUrl,
     isMalicious,
     threatLevel,
@@ -230,6 +273,9 @@ async function scanUrlWithIntelligence(sanitizedUrl, parsedUrl) {
       heuristicRiskScore: localHeuristic.riskScore,
     },
   };
+
+  setCachedResult(sanitizedUrl, result);
+  return result;
 }
 
 module.exports = {
@@ -238,4 +284,6 @@ module.exports = {
   queryGoogleSafeBrowsing,
   queryUrlScan,
   toBase64UrlId,
+  clearThreatCache,
+  threatCache,
 };
