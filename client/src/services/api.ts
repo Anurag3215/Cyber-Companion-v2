@@ -9,10 +9,10 @@ import {
 } from '../types/security';
 
 const CANDIDATE_GATEWAYS = [
-  'http://10.33.144.108:5000/api',
-  'http://192.168.1.17:5000/api',
-  'http://10.0.2.2:5000/api',
   'http://127.0.0.1:5000/api',
+  'http://10.0.19.29:5000/api',
+  'http://10.33.144.108:5000/api',
+  'http://10.0.2.2:5000/api',
 ];
 
 export const apiClient: AxiosInstance = axios.create({
