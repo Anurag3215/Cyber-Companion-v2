@@ -10,8 +10,7 @@ import {
 
 const CANDIDATE_GATEWAYS = [
   'http://127.0.0.1:5000/api',
-  'http://10.0.19.29:5000/api',
-  'http://10.33.144.108:5000/api',
+  'http://192.168.155.108:5000/api',
   'http://10.0.2.2:5000/api',
 ];
 
