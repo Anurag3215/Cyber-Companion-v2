@@ -773,28 +773,48 @@ export const WifiAnalyzerScreen: React.FC<Props> = () => {
             ) : preConnectAssessment ? (
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
                 {/* Risk Score Banner */}
-                <View
-                  style={[
-                    styles.modalRiskBanner,
-                    preConnectAssessment.severity === 'CRITICAL' || preConnectAssessment.severity === 'HIGH'
-                      ? styles.modalRiskBannerDanger
-                      : styles.modalRiskBannerSafe,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.modalRiskTitle,
-                      preConnectAssessment.severity === 'CRITICAL' || preConnectAssessment.severity === 'HIGH'
-                        ? { color: SecurityPalette.critical }
-                        : { color: SecurityPalette.safe },
-                    ]}>
-                    {preConnectAssessment.severity === 'CRITICAL' || preConnectAssessment.severity === 'HIGH'
-                      ? '⚠️ HIGH RISK — NOT RECOMMENDED'
-                      : '✓ SAFE TO CONNECT'}
-                  </Text>
-                  <Text style={styles.modalRiskScore}>
-                    Risk Score: {preConnectAssessment.riskScore}/100 &bull; {preConnectAssessment.encryption}
-                  </Text>
-                </View>
+                {(() => {
+                  const isDangerous =
+                    !preConnectAssessment.isSafe ||
+                    preConnectAssessment.severity === 'CRITICAL' ||
+                    preConnectAssessment.severity === 'HIGH' ||
+                    preConnectAssessment.riskScore >= 50;
+                  const isWarning =
+                    preConnectAssessment.riskScore > 25 && !isDangerous;
+
+                  return (
+                    <View
+                      style={[
+                        styles.modalRiskBanner,
+                        isDangerous
+                          ? styles.modalRiskBannerDanger
+                          : isWarning
+                            ? styles.modalRiskBannerWarning
+                            : styles.modalRiskBannerSafe,
+                      ]}>
+                      <Text
+                        style={[
+                          styles.modalRiskTitle,
+                          isDangerous
+                            ? { color: SecurityPalette.critical }
+                            : isWarning
+                              ? { color: SecurityPalette.warning }
+                              : { color: SecurityPalette.safe },
+                        ]}>
+                        {preConnectAssessment.severity === 'CRITICAL'
+                          ? '🚨 CRITICAL RISK — DO NOT CONNECT'
+                          : isDangerous
+                            ? '⚠️ HIGH RISK — NOT RECOMMENDED'
+                            : isWarning
+                              ? '⚠️ CAUTION — USE VPN'
+                              : '✓ SAFE TO CONNECT'}
+                      </Text>
+                      <Text style={styles.modalRiskScore}>
+                        Risk Score: {preConnectAssessment.riskScore}/100 &bull; {preConnectAssessment.encryption}
+                      </Text>
+                    </View>
+                  );
+                })()}
 
                 {/* Structured Breakdown */}
                 <View style={styles.modalSectionBlock}>
@@ -1446,6 +1466,10 @@ const styles = StyleSheet.create({
   modalRiskBannerDanger: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  modalRiskBannerWarning: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
   },
   modalRiskTitle: {
     fontSize: 15,

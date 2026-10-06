@@ -9,6 +9,7 @@ import {
 } from '../types/security';
 
 const CANDIDATE_GATEWAYS = [
+  'http://10.33.144.108:5000/api',
   'http://192.168.1.17:5000/api',
   'http://10.0.2.2:5000/api',
   'http://127.0.0.1:5000/api',
@@ -212,7 +213,14 @@ export const SecurityGatewayService = {
       status: data.threatLevel === 'SAFE' ? 'SAFE' : data.threatLevel === 'CRITICAL' ? 'DANGER' : 'ATTENTION',
       isSafe: data.isSafe,
       riskScore: data.riskScore,
-      severity: data.threatLevel === 'SAFE' ? 'LOW' : data.threatLevel === 'CRITICAL' ? 'CRITICAL' : 'MEDIUM',
+      severity:
+        data.threatLevel === 'CRITICAL'
+          ? 'CRITICAL'
+          : data.riskScore >= 60 || !data.isSafe
+            ? 'HIGH'
+            : data.riskScore > 25
+              ? 'MEDIUM'
+              : 'LOW',
       potentialRisks: data.technicalDetails?.flags || [],
       insight: {
         summary: data.verdict.whatHappened,
