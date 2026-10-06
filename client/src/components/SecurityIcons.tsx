@@ -156,3 +156,78 @@ export const CameraQrIcon: React.FC<IconProps> = ({
   </Svg>
 );
 
+export const PadlockLockedIcon: React.FC<IconProps> = ({
+  size = 18,
+  color = '#94A3B8',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="5"
+      y="11"
+      width="14"
+      height="10"
+      rx="2"
+      stroke={color}
+      strokeWidth={2}
+    />
+    <Path
+      d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    <Circle cx="12" cy="16" r="1.5" fill={color} />
+  </Svg>
+);
+
+export const PadlockOpenIcon: React.FC<IconProps> = ({
+  size = 18,
+  color = '#EF4444',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="5"
+      y="11"
+      width="14"
+      height="10"
+      rx="2"
+      stroke={color}
+      strokeWidth={2}
+    />
+    <Path
+      d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    <Circle cx="12" cy="16" r="1.5" fill={color} />
+  </Svg>
+);
+
+export const WifiOffIcon: React.FC<IconProps> = ({
+  size = 24,
+  color = '#94A3B8',
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M1 1L23 23"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    <Path
+      d="M16.72 11.06C18.25 11.66 19.64 12.57 20.8 13.72"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    <Path
+      d="M5 12.55C6.18 11.6 7.55 10.9 9 10.5"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    <Circle cx="12" cy="20" r="1.5" fill={color} />
+  </Svg>
+);
+
