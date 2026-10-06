@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Share } from 'react-native';
 import { Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/security';
@@ -38,9 +38,49 @@ export const ReportsScreen: React.FC<Props> = ({ navigation }) => {
 
   const hasData = totalScans > 0 || isCalculated;
 
-  const handleExport = () => {
-    setExportedNotice(true);
-    setTimeout(() => setExportedNotice(false), 3000);
+  const handleExport = async () => {
+    try {
+      const dateStr = new Date().toLocaleDateString();
+      const reportLines = [
+        '========================================',
+        '🛡️ CYBER COMPANION — DEVICE AUDIT REPORT',
+        '========================================',
+        `Generated: ${dateStr}`,
+        `Device Security Score: ${isCalculated && score !== null ? `${score}/100` : 'Not calculated yet'}`,
+        '',
+        '--- SCAN SUMMARY ---',
+        `Total Audits Conducted: ${totalScans}`,
+        `Clean Scans: ${safeScans}`,
+        `Threats Flagged: ${riskScans}`,
+        `URLs Inspected: ${urlScansCount}`,
+        `QR Codes Scanned: ${qrScansCount}`,
+        `Wi-Fi Networks Evaluated: ${wifiScansCount}`,
+        '',
+        '--- ACTIVE THREAT ALERTS ---',
+        threatAlerts.length > 0
+          ? threatAlerts.map((a, i) => `${i + 1}. [${a.severity}] ${a.title}: ${a.summary}`).join('\n')
+          : '✓ No active threat alerts detected.',
+        '',
+        '--- RECENT AUDIT LOGS ---',
+        scanHistory.length > 0
+          ? scanHistory.slice(0, 10).map((h) => `• ${h.date} ${h.time} | ${h.type} | ${h.target} -> [${h.result}]`).join('\n')
+          : 'No scan history recorded.',
+        '',
+        '========================================',
+        'Verified by Cyber Companion Mobile Security Engine',
+        '========================================',
+      ];
+
+      await Share.share({
+        title: `Cyber_Companion_Security_Report_${Date.now()}.txt`,
+        message: reportLines.join('\n'),
+      });
+
+      setExportedNotice(true);
+      setTimeout(() => setExportedNotice(false), 3000);
+    } catch (err) {
+      console.warn('Export share error:', err);
+    }
   };
 
   return (
